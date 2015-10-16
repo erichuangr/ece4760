@@ -60,6 +60,10 @@ fix16 mag_r_ij_squared  = float2fix16(pow(2*RADIUS,2.0));
 static pdrag            = float2fix16(.2);  //drag of paddle when interacting with ball
 static drag             = float2fix16(.95); //drag ball
 volatile int score      = 0;
+volatile int gameover   = 0;
+volatile unsigned char ball_scored[256];
+volatile signed int sine_table2[256];
+int	dmaChn=0;		// the DMA channel to use
 
 //compute radius and see if 2 target balls collide. if they do, return 1.
 int balls_collide(ball *ball_i, ball *ball_j){
@@ -124,6 +128,7 @@ void deleteBall(ball *delete_this){
     current_balls--;
 	
 }//function deleteBall
+ //method to figure out what sound to play
 // === Timer Thread =================================================
 static PT_THREAD (protothread_timer(struct pt *pt))
 {
@@ -145,8 +150,9 @@ static PT_THREAD (protothread_timer(struct pt *pt))
         tft_fillRect(175, 233,  2, 7, ILI9340_CYAN);
         tft_fillRect(248, 233,  2, 7, ILI9340_CYAN);
         tft_fillRect(175, 238, 75, 2, ILI9340_CYAN);
-        if(score >= 50 && sys_time_seconds <= 90)  {
-            tft_setCursor(100, 60);
+
+        if(score >= 50 && sys_time_seconds <= 60)  {
+            tft_setCursor(100, 90);
             tft_setTextColor(ILI9340_GREEN);  tft_setTextSize(3);
             tft_writeString("You Win!");
         }
@@ -215,7 +221,7 @@ static PT_THREAD (protothread_launch_balls(struct pt *pt))
 static PT_THREAD (protothread_anim_balls(struct pt *pt))
 {
     PT_BEGIN(pt); 
-    while(1) {     
+    while(1) {    
         PT_YIELD_TIME_msec(20);
         iterator = initial_ball;
         while(iterator != NULL) {       
@@ -243,10 +249,21 @@ static PT_THREAD (protothread_anim_balls(struct pt *pt))
                     && ((myPaddle->yc+PADDLE_LEN) >= fix2int16(iterator->yc))){
                 iterator->vxc = -(iterator->vxc);
                 iterator->vyc = iterator->vyc + multfix16(int2fix16(myPaddle->vyc),pdrag);
+                //DmaChnSetTxfer(dmaChn, sine_table2, (void*)&CVRCON, sizeof(sine_table2), 1, 1);
+                //DmaChnEnable(dmaChn);
+                //PT_YIELD_TIME_msec(2);
+                //DmaChnDisable(dmaChn);  
             }
             // Else the ball went off the right edge
             else if (myPaddle->xc+DIAMETER >= fix2int16(iterator->xc))                                                    
-                { deleteBall(iterator); score--;}
+            { 
+                DmaChnSetTxfer(dmaChn, ball_scored, (void*)&CVRCON, sizeof(ball_scored), 1, 1);
+                DmaChnEnable(dmaChn);
+                PT_YIELD_TIME_msec(2);
+                DmaChnDisable(dmaChn);  
+                deleteBall(iterator); 
+                score--;
+            }
             // Calculate top bin
             else if ((iterator->xc) <= int2fix16(250+2) && iterator->xc >= int2fix16(175-2) && iterator->yc <= int2fix16(25+9))    
                 { deleteBall(iterator); score++;}   
@@ -264,6 +281,7 @@ static PT_THREAD (protothread_anim_balls(struct pt *pt))
     } // END WHILE(1)
     PT_END(pt);
 } // animation thread
+
 // === Main  ======================================================
 void main(void) {
     //SYSTEMConfigPerformance(PBCLK);
@@ -293,8 +311,38 @@ void main(void) {
     // configure to sample AN11 
     SetChanADC10( ADC_CH0_NEG_SAMPLEA_NVREF | ADC_CH0_POS_SAMPLEA_AN11 ); // configure to sample AN4 
     OpenADC10( PARAM1, PARAM2, PARAM3, PARAM4, PARAM5 ); // configure ADC using the parameters defined above
-    EnableADC10(); // Enable the ADC
-    ///////////////////////////////////////////////////////
+    EnableADC10(); // Enable the ADC      
+    OpenTimer2(T2_ON | T2_SOURCE_INT | T2_PS_1_1, 400); 
+    mPORTAClearBits(BIT_0 );		//Clear bits to ensure light is off.
+    mPORTASetPinsDigitalOut(BIT_0 );    //Set port as output
+    int CVRCON_setup;
+    // set up the Vref pin and use as a DAC
+    // enable module| eanble output | use low range output | use internal reference | desired step
+    CVREFOpen( CVREF_ENABLE | CVREF_OUTPUT_ENABLE | CVREF_RANGE_LOW | CVREF_SOURCE_AVDD | CVREF_STEP_0 );
+    // And read back setup from CVRCON for speed later
+    // 0x8060 is enabled with output enabled, Vdd ref, and 0-0.6(Vdd) range
+    CVRCON_setup = CVRCON; //CVRCON = 0x8060
+	// Open the desired DMA channel.
+	// We enable the AUTO option, we'll keep repeating the same transfer over and over.
+	DmaChnOpen(dmaChn, 0, DMA_OPEN_AUTO);
+	// set the transfer parameters: source & destination address, source & destination size, number of bytes per event
+    // Setting the last parameter to one makes the DMA output one byte/interrut
+    //DmaChnSetTxfer(dmaChn, sine_table, (void*) &CVRCON, sizeof(sine_table), 1, 1);
+	// set the transfer event control: what event is to start the DMA transfer
+    // In this case, timer2 
+	DmaChnSetEventControl(dmaChn,  DMA_EV_START_IRQ(_TIMER_2_IRQ));
+	// once we configured the DMA channel we can enable it
+	// now it's ready and waiting for an event to occur...
+	//DmaChnEnable(dmaChn);
+  
+    int i;
+    for(i=0; i <256; i++){
+        ball_scored[i] = 0x60|((unsigned char)((float)255/2*(sin(6.2832*(((float)i)/(float)256))+1))) ;
+        //ball_lost[i]
+       // game_over
+    }
+
+        
     // init the threads
     PT_INIT(&pt_timer);
     PT_INIT(&pt_adc);
