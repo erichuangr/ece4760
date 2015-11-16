@@ -536,7 +536,9 @@ void move_piece(int pos_x, int pos_y, int move_num){
 	
 	if (piece_name == PAWN){
 		
+		//To DO. implement moving pieces based of of array and number inputted.
 		
+		//then actually move pieces and implement capturing of pieces
 		
 	}
 	
