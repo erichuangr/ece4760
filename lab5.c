@@ -795,7 +795,7 @@ void move_piece(int pos_x, int pos_y, int move_num){
 
 
 
-
+// take keyboard commands. for testing purpose
 static PT_THREAD (protothread_keyboard(struct pt *pt)){
     PT_BEGIN(pt);
       while(1) {         
@@ -834,7 +834,7 @@ static PT_THREAD (protothread_keyboard(struct pt *pt)){
     PT_END(pt);
 }
 // === Timer Thread =================================================
-// update a 1 second tick counter
+// have two timers, one for each player that will keep track of total time they have
 static PT_THREAD (protothread_timer(struct pt *pt)){
     PT_BEGIN(pt);
      tft_setCursor(0, 0);
@@ -856,11 +856,9 @@ static PT_THREAD (protothread_timer(struct pt *pt)){
   PT_END(pt);
 } // timer thread
 
-// === Color Thread =================================================
-// draw 3 color patches for R,G,B from a random number
-static int color ;
-static int i;
-static PT_THREAD (protothread_color(struct pt *pt)){
+// === Move Thread =================================================
+// after a button or keyboard command with the x,y pos of board and what move, we calculate possible moves and move the piece
+static PT_THREAD (protothread_move(struct pt *pt)){
     PT_BEGIN(pt);
       while(1) {
         // yield time 1 second
@@ -888,8 +886,7 @@ static PT_THREAD (protothread_color(struct pt *pt)){
 } // color thread
 
 // === Calculate Move and Make Move Thread =============================================
-// update a 1 second tick counter
-static PT_THREAD (protothread_anim(struct pt *pt)){
+static PT_THREAD (protothread_move(struct pt *pt)){
     PT_BEGIN(pt);
       while(1) {
 
@@ -913,8 +910,9 @@ void main(void) {
 
   // init the threads
   PT_INIT(&pt_timer);
-  PT_INIT(&pt_color);
-  PT_INIT(&pt_anim);
+  PT_INIT(&pt_keyboard);
+  PT_INIT(&pt_board);
+  PT_INIT(&pt_move);
 
   // init the display
   tft_init_hw();
@@ -931,8 +929,8 @@ void main(void) {
   while (1){
       PT_SCHEDULE(protothread_keyboard(&pt_key));
       PT_SCHEDULE(protothread_timer(&pt_timer));
-      //PT_SCHEDULE(protothread_color(&pt_color));
-      //PT_SCHEDULE(protothread_anim(&pt_anim));
+      PT_SCHEDULE(protothread_board(&pt_board));
+      PT_SCHEDULE(protothread_move(&pt_move));
   }
  } // main
 
