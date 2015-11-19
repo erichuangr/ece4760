@@ -32,20 +32,20 @@ typedef struct piece{
     char xpos;   //ranges between a-h (a = 0, h = 7)
     char ypos;   //ranges between 1 and 8 (1 = 0, 8 = 7)
     
-	char pawn_moves[4];
-    char bishop_moves[28];
-    char knight_moves[8];
-    char rook_moves[28];
-    char queen_moves[56];
-    char king_moves[8];
+	char pawn_avail[4];
+    char bishop_avail[28];
+    char knight_avail[8];
+    char rook_avail[28];
+    char queen_avail[56];
+    char king_avail[8];
 }piece;
 
 // our 8x8 board of pieces
 piece *board[8][8] = {0};
-//piece *captured[29] = {0}; //captured elements
-//int captured_index = 0;
+piece *captured[29] = {0}; //captured elements
+int captured_index = 0;
 
-//piece *selected;
+piece *selected;
 
 piece *pawn;
 piece *rook;
@@ -53,7 +53,7 @@ piece *knight;
 piece *bishop;
 piece *queen;
 piece *king;
-int side_loop = -1;
+char side_loop = -1;
 
 volatile int button_x;
 volatile int button_y;
@@ -156,88 +156,91 @@ void initialize_board(){
 	}
 	
 }
-/*
+
 void calc_pawn_moves(piece *pawn){
 	
-	int pawn_x = pawn->xpos;
-	int pawn_y = pawn->ypos;
+	char pawn_x = pawn->xpos;
+	char pawn_y = pawn->ypos;
 	
-	int pawn_y_sideff = pawn->ypos + (pawn->side * 2);
-	int pawn_y_sidef = pawn->ypos + (pawn->side * 1);
-	int pawn_x_sider = pawn->xpos + 1;
-	int pawn_x_sidel = pawn->xpos - 1;
+	char pawn_y_sideff = pawn->ypos + (pawn->side * 2);
+	char pawn_y_sidef = pawn->ypos + (pawn->side * 1);
+	char pawn_x_sider = pawn->xpos + 1;
+	char pawn_x_sidel = pawn->xpos - 1;
 		
 	//two squares up
-	if (((pawn->start) && (board[pawn_y_sideff][pawn_x] == 0)) //no piece should be there
-		pawn->avail_moves.pawn_avail[0] = 1;
+	if (((pawn->start) && (board[pawn_y_sideff][pawn_x] == 0))) //no piece should be there
+		pawn->pawn_avail[0] = 1;
 	else
-		pawn->avail_moves.pawn_avail[0] = 0;
+		pawn->pawn_avail[0] = 0;
 	
 	//diag right
-	if (((pawn_x_sidedr)<8) && (board[pawn_y_sidef][pawn_x_sider] != 0) && (board[pawn_y_sidef][pawn_x_sider]->side != pawn->side)) //see if piece is there
-		pawn->avail_moves.pawn_avail[2] = 1;
+	if (((pawn_x_sider)<8) && (board[pawn_y_sidef][pawn_x_sider] != 0) && (board[pawn_y_sidef][pawn_x_sider]->side != pawn->side)) //see if piece is there
+		pawn->pawn_avail[2] = 1;
 	else
-		pawn->avail_moves.pawn_avail[2] = 0;
+		pawn->pawn_avail[2] = 0;
 
 	//diag left
-	if (((pawn_x_sidedl)>-1) && (board[pawn_y_sidef][pawn_x_sidel] != 0) && (board[pawn_y_sidef][pawn_x_sidel]->side != pawn->side)) //see if enemy piece is there
-		pawn->avail_moves.pawn_avail[3] = 1;
+	if (((pawn_x_sidel)>-1) && (board[pawn_y_sidef][pawn_x_sidel] != 0) && (board[pawn_y_sidef][pawn_x_sidel]->side != pawn->side)) //see if enemy piece is there
+		pawn->pawn_avail[3] = 1;
 	else
-		pawn->avail_moves.pawn_avail[3] = 0;
+		pawn->pawn_avail[3] = 0;
 	
 	//one square up
 	if (board[pawn_y_sidef][pawn_x_sidel] == 0) //no piece should be in front of pawn
-		pawn->avail_moves.pawn_avail[1] = 1;
+		pawn->pawn_avail[1] = 1;
 	else
-		pawn->avail_moves.pawn_avail[1] = 0;
+		pawn->pawn_avail[1] = 0;
 	
 }
 
+
 void calc_bish_moves(piece *bishop){
 	
-	int bish_x = bishop->xpos;
-	int bish_y = bishop->ypos;
+	char bish_x = bishop->xpos;
+	char bish_y = bishop->ypos;
 	
-	for (int i = 1; bish_x+i<8; i++){ //go diag up right
+    int i, j;
+    
+	for (i = 1; bish_x+i<8; i++){ //go diag up right
 		if (((bish_y+i)<8) && ((board[bish_y+i][bish_x+i] == 0) || (board[bish_y+i][bish_x+i]->side != bishop->side))) //make sure no piece there or it's enemy piece
-			bishop->avail_moves.bishop_avail[i-1] = 1;
+			bishop->bishop_avail[i-1] = 1;
 		else{ //this move is invalid. so are rest in diagonal
-			bishop->avail_moves.bishop_avail[i-1] = 0;
-			for (int j = 1; i-1+j < 7; j++)
-				bishop->avail_moves.bishop_avail[i-1+j] = 0;
+			bishop->bishop_avail[i-1] = 0;
+			for (j = 1; i-1+j < 7; j++)
+				bishop->bishop_avail[i-1+j] = 0;
 			break;
 		}
 	}
 	
-	for (int i = 1; bish_x+i<8; i++){ //go diag down right
+	for (i = 1; bish_x+i<8; i++){ //go diag down right
 		if (((bish_y-i)>-1) && ((board[bish_y-i][bish_x+i] == 0) || (board[bish_y-i][bish_x+i]->side != bishop->side))) //make sure no piece there or it's enemy piece
-			bishop->avail_moves.bishop_avail[7+i-1] = 1;
+			bishop->bishop_avail[7+i-1] = 1;
 		else{ //this move is invalid. so are rest in diagonal
-			bishop->avail_moves.bishop_avail[7+i-1] = 0;
-			for (int j = 1; 7+i-1+j < 14; j++)
-				bishop->avail_moves.bishop_avail[7+i-1+j] = 0;
+			bishop->bishop_avail[7+i-1] = 0;
+			for (j = 1; 7+i-1+j < 14; j++)
+				bishop->bishop_avail[7+i-1+j] = 0;
 			break;
 		}
 	}
 	
-	for (int i = 1; bish_x-i>-1; i++){ //go diag down left
+	for (i = 1; bish_x-i>-1; i++){ //go diag down left
 		if (((bish_y-i)>-1) && ((board[bish_y-i][bish_x-i] == 0) || (board[bish_y-i][bish_x-i]->side != bishop->side))) //make sure no piece there or it's enemy piece
-			bishop->avail_moves.bishop_avail[14+i-1] = 1;
+			bishop->bishop_avail[14+i-1] = 1;
 		else{ //this move is invalid. so are rest in diagonal
-			bishop->avail_moves.bishop_avail[14+i-1] = 0;
-			for (int j = 1; 14+i-1+j < 21; j++)
-				bishop->avail_moves.bishop_avail[14+i-1+j] = 0;
+			bishop->bishop_avail[14+i-1] = 0;
+			for (j = 1; 14+i-1+j < 21; j++)
+				bishop->bishop_avail[14+i-1+j] = 0;
 			break;
 		}
 	}
 	
-	for (int i = 1; bish_x-i>-1; i++){ //go diag up left
+	for (i = 1; bish_x-i>-1; i++){ //go diag up left
 		if (((bish_y+i)<8) && ((board[bish_y+i][bish_x-i] == 0) || (board[bish_y+i][bish_x-i]->side != bishop->side))) //make sure no piece there or it's enemy piece
-			bishop->avail_moves.bishop_avail[21+i-1] = 1;
+			bishop->bishop_avail[21+i-1] = 1;
 		else{ //this move is invalid. so are rest in diagonal
-			bishop->avail_moves.bishop_avail[21+i-1] = 0;
-			for (int j = 1; 21+i-1+j < 28; j++)
-				bishop->avail_moves.bishop_avail[21+i-1+j] = 0;
+			bishop->bishop_avail[21+i-1] = 0;
+			for (j = 1; 21+i-1+j < 28; j++)
+				bishop->bishop_avail[21+i-1+j] = 0;
 			break;
 		}
 	}
@@ -245,49 +248,51 @@ void calc_bish_moves(piece *bishop){
 
 void calc_rook_moves(piece *rook){
 	
-	int rook_x = rook->xpos;
-	int rook_y = rook->ypos;
+	char rook_x = rook->xpos;
+	char rook_y = rook->ypos;
+    
+    int i, j;
 	
-	for (int i = 1; rook_y+i<8; i++){ //go up
+	for (i = 1; rook_y+i<8; i++){ //go up
 		if ((board[rook_y+i][rook_x] == 0) || (board[rook_y+i][rook_x]->side != rook->side)) //make sure no piece there or it's enemy piece
-			rook->avail_moves.rook_avail[i-1] = 1;
+			rook->rook_avail[i-1] = 1;
 		else{ //this move is invalid. so are rest in line
-			rook->avail_moves.rook_avail[i-1] = 0;
-			for (int j = 1; i-1+j < 7; j++)
-				rook->avail_moves.rook_avail[i-1+j] = 0;
+			rook->rook_avail[i-1] = 0;
+			for (j = 1; i-1+j < 7; j++)
+				rook->rook_avail[i-1+j] = 0;
 			break;
 		}
 	}
 	
-	for (int i = 1; rook_x+i<8; i++){ //go right
+	for (i = 1; rook_x+i<8; i++){ //go right
 		if ((board[rook_y][rook_x+i] == 0) || (board[rook_y][rook_x+i]->side != rook->side)) //make sure no piece there or it's enemy piece
-			rook->avail_moves.rook_avail[7+i-1] = 1;
+			rook->rook_avail[7+i-1] = 1;
 		else{ //this move is invalid. so are rest in line
-			rook->avail_moves.rook_avail[7+i-1] = 0;
-			for (int j = 1; 7+i-1+j < 14; j++)
-				rook->avail_moves.rook_avail[7+i-1+j] = 0;
+			rook->rook_avail[7+i-1] = 0;
+			for (j = 1; 7+i-1+j < 14; j++)
+				rook->rook_avail[7+i-1+j] = 0;
 			break;
 		}
 	}
 	
-	for (int i = 1; rook_y-i>-1; i++){ //go down
+	for (i = 1; rook_y-i>-1; i++){ //go down
 		if ((board[rook_y-i][rook_x] == 0) || (board[rook_y-i][rook_x]->side != rook->side)) //make sure no piece there or it's enemy piece
-			rook->avail_moves.rook_avail[14+i-1] = 1;
+			rook->rook_avail[14+i-1] = 1;
 		else{ //this move is invalid. so are rest in line
-			rook->avail_moves.rook_avail[14+i-1] = 0;
-			for (int j = 1; 14+i-1+j < 21; j++)
-				rook->avail_moves.rook_avail[14+i-1+j] = 0;
+			rook->rook_avail[14+i-1] = 0;
+			for (j = 1; 14+i-1+j < 21; j++)
+				rook->rook_avail[14+i-1+j] = 0;
 			break;
 		}
 	}
 	
-	for (int i = 1; rook_x-i>-1; i++){ //go left
+	for (i = 1; rook_x-i>-1; i++){ //go left
 		if ((board[rook_y][rook_x-i] == 0) || (board[rook_y][rook_x-i]->side != rook->side)) //make sure no piece there or it's enemy piece
-			rook->avail_moves.rook_avail[21+i-1] = 1;
+			rook->rook_avail[21+i-1] = 1;
 		else{ //this move is invalid. so are rest in line
-			rook->avail_moves.rook_avail[21+i-1] = 0;
-			for (int j = 1; 21+i-1+j < 28; j++)
-				rook->avail_moves.rook_avail[21+i-1+j] = 0;
+			rook->rook_avail[21+i-1] = 0;
+			for (j = 1; 21+i-1+j < 28; j++)
+				rook->rook_avail[21+i-1+j] = 0;
 			break;
 		}
 	}
@@ -295,100 +300,102 @@ void calc_rook_moves(piece *rook){
 
 void calc_queen_moves(piece *queen){
 	
-	int queen_x = queen->xpos;
-	int queen_y = queen->ypos;
+	char queen_x = queen->xpos;
+	char queen_y = queen->ypos;
+    
+    int i, j;
 	
-	for (int i = 1; queen_y+i<8; i++){ //go up
+	for (i = 1; queen_y+i<8; i++){ //go up
 		if ((board[queen_y+i][queen_x] == 0) || (board[queen_y+i][queen_x]->side != queen->side)) //make sure no piece there or it's enemy piece
-			queen->avail_moves.queen_avail[i-1] = 1;
+			queen->queen_avail[i-1] = 1;
 		else{ //this move is invalid. so are rest in line
-			queen->avail_moves.queen_avail[i-1] = 0;
-			for (int j = 1; i-1+j < 7; j++)
-				queen->avail_moves.queen_avail[i-1+j] = 0;
+			queen->queen_avail[i-1] = 0;
+			for (j = 1; i-1+j < 7; j++)
+				queen->queen_avail[i-1+j] = 0;
 			break;
 		}
 	}
 	
-	for (int i = 1; queen_x+i<8; i++){ //go diag up right
+	for (i = 1; queen_x+i<8; i++){ //go diag up right
 		if ((queen_y+i)<8){ //make sure y is in bounds
 			if ((board[queen_y+i][queen_x+i] == 0) || (board[queen_y+i][queen_x+i]->side != queen->side)) //make sure no piece there or it's enemy piece
-				queen->avail_moves.queen_avail[7+i-1] = 1;
+				queen->queen_avail[7+i-1] = 1;
 			else{ //this move is invalid. so are rest in diagonal
-				queen->avail_moves.queen_avail[7+i-1] = 0;
-				for (int j = 1; 7+i-1+j < 14; j++)
-					queen->avail_moves.queen_avail[7+i-1+j] = 0;
+				queen->queen_avail[7+i-1] = 0;
+				for (j = 1; 7+i-1+j < 14; j++)
+					queen->queen_avail[7+i-1+j] = 0;
 				break;
 			}
 		}
 	}
 	
-	for (int i = 1; rook_x+i<8; i++){ //go right
+	for (i = 1; queen_x+i<8; i++){ //go right
 		if ((board[queen_y][queen_x+i] == 0) || (board[queen_y][queen_x+i]->side != queen->side)) //make sure no piece there or it's enemy piece
-			queen->avail_moves.queen_avail[14+i-1] = 1;
+			queen->queen_avail[14+i-1] = 1;
 		else{ //this move is invalid. so are rest in line
-			queen->avail_moves.queen_avail[14+i-1] = 0;
-			for (int j = 1; 14+i-1+j < 21; j++)
-				queen->avail_moves.queen_avail[14+i-1+j] = 0;
+			queen->queen_avail[14+i-1] = 0;
+			for (j = 1; 14+i-1+j < 21; j++)
+				queen->queen_avail[14+i-1+j] = 0;
 			break;
 		}
 	}
 	
-	for (int i = 1; queen_x+i<8; i++){ //go diag down right
+	for (i = 1; queen_x+i<8; i++){ //go diag down right
 		if ((queen_y-i)>-1){ //make sure y is in bounds
 			if ((board[queen_y-i][queen_x+i] == 0) || (board[queen_y-i][queen_x+i]->side != queen->side)) //make sure no piece there or it's enemy piece
-				queen->avail_moves.queen_avail[21+i-1] = 1;
+				queen->queen_avail[21+i-1] = 1;
 			else{ //this move is invalid. so are rest in diagonal
-				queen->avail_moves.queen_avail[21+i-1] = 0;
-				for (int j = 1; 21+i-1+j < 28; j++)
-					queen->avail_moves.queen_avail[21+i-1+j] = 0;
+				queen->queen_avail[21+i-1] = 0;
+				for (j = 1; 21+i-1+j < 28; j++)
+					queen->queen_avail[21+i-1+j] = 0;
 				break;
 			}
 		}
 	}
 	
-	for (int i = 1; queen_y-i>-1; i++){ //go down
+	for (i = 1; queen_y-i>-1; i++){ //go down
 		if ((board[queen_y-i][queen_x] == 0) || (board[queen_y-i][queen_x]->side != queen->side)) //make sure no piece there or it's enemy piece
-			queen->avail_moves.queen_avail[28+i-1] = 1;
+			queen->queen_avail[28+i-1] = 1;
 		else{ //this move is invalid. so are rest in line
-			queen->avail_moves.queen_avail[28+i-1] = 0;
-			for (int j = 1; 28+i-1+j < 35; j++)
-				queen->avail_moves.queen_avail[28+i-1+j] = 0;
+			queen->queen_avail[28+i-1] = 0;
+			for (j = 1; 28+i-1+j < 35; j++)
+				queen->queen_avail[28+i-1+j] = 0;
 			break;
 		}
 	}
 	
-	for (int i = 1; queen_x-i>-1; i++){ //go diag down left
+	for (i = 1; queen_x-i>-1; i++){ //go diag down left
 		if ((queen_y-i)>-1){ //make sure y is in bounds
 			if ((board[queen_y-i][queen_x-i] == 0) || (board[queen_y-i][queen_x-i]->side != queen->side)) //make sure no piece there or it's enemy piece
-				queen->avail_moves.queen_avail[35+i-1] = 1;
+				queen->queen_avail[35+i-1] = 1;
 			else{ //this move is invalid. so are rest in diagonal
-				queen->avail_moves.queen_avail[35+i-1] = 0;
-				for (int j = 1; 35+i-1+j < 42; j++)
-					queen->avail_moves.queen_avail[35+i-1+j] = 0;
+				queen->queen_avail[35+i-1] = 0;
+				for (j = 1; 35+i-1+j < 42; j++)
+					queen->queen_avail[35+i-1+j] = 0;
 				break;
 			}
 		}
 	}
 	
-	for (int i = 1; queen_x-i>-1; i++){ //go left
+	for (i = 1; queen_x-i>-1; i++){ //go left
 		if ((board[queen_y][queen_x-i] == 0) || (board[queen_y][queen_x-i]->side != queen->side)) //make sure no piece there or it's enemy piece
-			queen->avail_moves.queen_avail[42+i-1] = 1;
+			queen->queen_avail[42+i-1] = 1;
 		else{ //this move is invalid. so are rest in line
-			queen->avail_moves.queen_avail[42+i-1] = 0;
-			for (int j = 1; 42+i-1+j < 49; j++)
-				queen->avail_moves.queen_avail[42+i-1+j] = 0;
+			queen->queen_avail[42+i-1] = 0;
+			for (j = 1; 42+i-1+j < 49; j++)
+				queen->queen_avail[42+i-1+j] = 0;
 			break;
 		}
 	}
 	
-	for (int i = 1; queen_x-i>-1; i++){ //go diag up left
+	for (i = 1; queen_x-i>-1; i++){ //go diag up left
 		if ((queen_y+i)<8){ //make sure y is in bounds
 			if ((board[queen_y+i][queen_x-i] == 0) || (board[queen_y+i][queen_x-i]->side != queen->side)) //make sure no piece there or it's enemy piece
-				queen->avail_moves.queen_avail[49+i-1] = 1;
+				queen->queen_avail[49+i-1] = 1;
 			else{ //this move is invalid. so are rest in diagonal
-				queen->avail_moves.queen_avail[49+i-1] = 0;
-				for (int j = 1; 49+i-1+j < 56; j++)
-					queen->avail_moves.queen_avail[49+i-1+j] = 0;
+				queen->queen_avail[49+i-1] = 0;
+				for (j = 1; 49+i-1+j < 56; j++)
+					queen->queen_avail[49+i-1+j] = 0;
 				break;
 			}
 		}
@@ -398,135 +405,135 @@ void calc_queen_moves(piece *queen){
 
 void calc_king_moves(piece *king){
 	
-	int king_x = king->xpos;
-	int king_y = king->ypos;
-	
+	char king_x = king->xpos;
+	char king_y = king->ypos;
+    
 	//up
 	if (((king_y+1) < 8) && ((board[king_y+1][king_x] == 0) || (board[king_y+1][king_x]->side != king->side))) //make sure no piece there or it's enemy piece
-		king->avail_moves.king_avail[0] = 1;
+		king->king_avail[0] = 1;
 	else //this move is invalid
-		king->avail_moves.king_avail[0] = 0;
+		king->king_avail[0] = 0;
 	
 	//up right
 	if (((king_y+1)<8) && ((king_x+1)<8) && ((board[king_y+1][king_x+1] == 0) || (board[king_y+1][king_x+1]->side != king->side))) //make sure no piece there or it's enemy piece
-		king->avail_moves.king_avail[1] = 1;
+		king->king_avail[1] = 1;
 	else //this move is invalid
-		king->avail_moves.king_avail[1] = 0;
+		king->king_avail[1] = 0;
 	
 	//right
-	if (((king_x+1)<8) && ((board[king_y][king_x+i] == 0) || (board[king_y][king_x+i]->side != king->side))) //make sure no piece there or it's enemy piece
-		king->avail_moves.queen_avail[2] = 1;
+	if (((king_x+1)<8) && ((board[king_y][king_x+1] == 0) || (board[king_y][king_x+1]->side != king->side))) //make sure no piece there or it's enemy piece
+		king->king_avail[2] = 1;
 	else //this move is invalid
-		king->avail_moves.king_avail[2] = 0;
+		king->king_avail[2] = 0;
 	
 	//down right
 	if (((king_y-1)>-1) && ((king_x+1)<8) && ((board[king_y-1][king_x+1] == 0) || (board[king_y-1][king_x+1]->side != king->side))) //make sure no piece there or it's enemy piece
-		king->avail_moves.king_avail[3] = 1;
+		king->king_avail[3] = 1;
 	else //this move is invalid
-		king->avail_moves.king_avail[3] = 0;
+		king->king_avail[3] = 0;
 	
 	//down
-	if ((king_y-i>-1) && ((board[king_y-1][king_x] == 0) || (board[king_y-1][king_x]->side != qking->side))) //make sure no piece there or it's enemy piece
-		king->avail_moves.king_avail[4] = 1;
+	if ((king_y-1>-1) && ((board[king_y-1][king_x] == 0) || (board[king_y-1][king_x]->side != king->side))) //make sure no piece there or it's enemy piece
+		king->king_avail[4] = 1;
 	else //this move is invalid
-		king->avail_moves.king_avail[4] = 0;
+		king->king_avail[4] = 0;
 	
 	//down left
 	if (((king_y-1)>-1) && ((king_x-1)>-1) && ((board[king_y-1][king_x-1] == 0) || (board[king_y-1][king_x-1]->side != king->side))) //make sure no piece there or it's enemy piece
-		king->avail_moves.king_avail[5] = 1;
+		king->king_avail[5] = 1;
 	else //this move is invalid
-		king->avail_moves.king_avail[5] = 0;
+		king->king_avail[5] = 0;
 	
 	//left
-	if (((king_x-1)>-1) && ((board[king_y][king_x-i] == 0) || (board[king_y][king_x-i]->side != king->side))) //make sure no piece there or it's enemy piece
-		king->avail_moves.queen_avail[6] = 1;
+	if (((king_x-1)>-1) && ((board[king_y][king_x-1] == 0) || (board[king_y][king_x-1]->side != king->side))) //make sure no piece there or it's enemy piece
+		king->king_avail[6] = 1;
 	else //this move is invalid
-		king->avail_moves.king_avail[6] = 0;
+		king->king_avail[6] = 0;
 	
 	//up left
 	if (((king_y+1)<8) && ((king_x-1)>-1) && ((board[king_y+1][king_x-1] == 0) || (board[king_y+1][king_x-1]->side != king->side))) //make sure no piece there or it's enemy piece
-		king->avail_moves.king_avail[7] = 1;
+		king->king_avail[7] = 1;
 	else //this move is invalid
-		king->avail_moves.king_avail[7] = 0;
+		king->king_avail[7] = 0;
 	
 }
 
 void calc_knight_moves(piece *knight){
 	
-	int knight_x = knight->xpos;
-	int knight_y = knight->ypos;
+	char knight_x = knight->xpos;
+	char knight_y = knight->ypos;
 	
 	//big up right
 	if (((knight_y+2) < 8) && ((knight_x+1)<8) && ((board[knight_y+2][knight_x+1] == 0) || (board[knight_y+2][knight_x+1]->side != knight->side))) //make sure no piece there or it's enemy piece
-		knight->avail_moves.knight_avail[0] = 1;
+		knight->knight_avail[0] = 1;
 	else //this move is invalid
-		knight->avail_moves.knight_avail[0] = 0;
+		knight->knight_avail[0] = 0;
 		
 	//small up right
 	if (((knight_y+1) < 8) && ((knight_x+2)<8) && ((board[knight_y+1][knight_x+2] == 0) || (board[knight_y+1][knight_x+2]->side != knight->side))) //make sure no piece there or it's enemy piece
-		knight->avail_moves.knight_avail[1] = 1;
+		knight->knight_avail[1] = 1;
 	else //this move is invalid
-		knight->avail_moves.knight_avail[1] = 0;
+		knight->knight_avail[1] = 0;
 	
 	//small down right
 	if (((knight_y+1) < 8) && ((knight_x-2)>-1) && ((board[knight_y+1][knight_x-2] == 0) || (board[knight_y+1][knight_x-2]->side != knight->side))) //make sure no piece there or it's enemy piece
-		knight->avail_moves.knight_avail[2] = 1;
+		knight->knight_avail[2] = 1;
 	else //this move is invalid
-		knight->avail_moves.knight_avail[2] = 0;
+		knight->knight_avail[2] = 0;
 		
 	//big down right
 	if (((knight_y-2) > -1) && ((knight_x+1)<8) && ((board[knight_y-2][knight_x+1] == 0) || (board[knight_y-2][knight_x+1]->side != knight->side))) //make sure no piece there or it's enemy piece
-		knight->avail_moves.knight_avail[3] = 1;
+		knight->knight_avail[3] = 1;
 	else //this move is invalid
-		knight->avail_moves.knight_avail[3] = 0;
+		knight->knight_avail[3] = 0;
 	
 	//big down left
 	if (((knight_y-2) > -1) && ((knight_x-1)>-1) && ((board[knight_y-2][knight_x-1] == 0) || (board[knight_y-2][knight_x-1]->side != knight->side))) //make sure no piece there or it's enemy piece
-		knight->avail_moves.knight_avail[4] = 1;
+		knight->knight_avail[4] = 1;
 	else //this move is invalid
-		knight->avail_moves.knight_avail[4] = 0;
+		knight->knight_avail[4] = 0;
 		
 	//small down left
 	if (((knight_y-1) > -1) && ((knight_x-2)>-1) && ((board[knight_y-1][knight_x-2] == 0) || (board[knight_y-1][knight_x-2]->side != knight->side))) //make sure no piece there or it's enemy piece
-		knight->avail_moves.knight_avail[5] = 1;
+		knight->knight_avail[5] = 1;
 	else //this move is invalid
-		knight->avail_moves.knight_avail[5] = 0;
+		knight->knight_avail[5] = 0;
 		
 	//small up left
 	if (((knight_y+1) < 8) && ((knight_x-2)>-1) && ((board[knight_y+1][knight_x-2] == 0) || (board[knight_y+1][knight_x-2]->side != knight->side))) //make sure no piece there or it's enemy piece
-		knight->avail_moves.knight_avail[6] = 1;
+		knight->knight_avail[6] = 1;
 	else //this move is invalid
-		knight->avail_moves.knight_avail[6] = 0;
+		knight->knight_avail[6] = 0;
 		
 	//big up left
 	if (((knight_y+2) < 8) && ((knight_x-1)>-1) && ((board[knight_y+2][knight_x-1] == 0) || (board[knight_y+2][knight_x-1]->side != knight->side))) //make sure no piece there or it's enemy piece
-		knight->avail_moves.knight_avail[7] = 1;
+		knight->knight_avail[7] = 1;
 	else //this move is invalid
-		knight->avail_moves.knight_avail[7] = 0;
+		knight->knight_avail[7] = 0;
 }
 
-void calc_piece_moves(int pos_x, int pos_y){
+void calc_piece_moves(char pos_x, char pos_y){
 	
 	piece *piece = board[pos_y][pos_x];
-	int piece_name = piece->name;
+	char piece_name = piece->name;
 	
 	if (piece_name == PAWN)
-		calc_pawn_moves(pos_x, pos_y, move_num);
+		calc_pawn_moves(piece);
 	else if (piece_name == BISHOP)
-		calc_bish_moves(pos_x, pos_y, move_num);
+		calc_bish_moves(piece);
 	else if (piece_name == KNIGHT)
-		calc_knight_moves(pos_x, pos_y, move_num);
+		calc_knight_moves(piece);
 	else if (piece_name == ROOK)
-		calc_rook_moves(pos_x, pos_y, move_num);
+		calc_rook_moves(piece);
 	else if (piece_name == QUEEN)
-		calc_queen_moves(pos_x, pos_y, move_num);
+		calc_queen_moves(piece);
 	else if (piece_name == KING)
-		calc_king_moves(pos_x, pos_y, move_num);
+		calc_king_moves(piece);
 	
 }
 
-void capture_piece(int pos_x, int pos_y, int new_pos_x, int new_pos_y){
-	if board[new_pos_y][new_pos_x] != 0{ //store captured piece in captured array
+void capture_piece(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
+	if (board[new_pos_y][new_pos_x] != 0){ //store captured piece in captured array
 		captured[captured_index] = board[new_pos_y][new_pos_x];
 		captured_index++;
 	}
@@ -537,212 +544,212 @@ void capture_piece(int pos_x, int pos_y, int new_pos_x, int new_pos_y){
 	board[pos_y][pos_x] = 0;
 }
 
-void move_pawn(int pos_x, int pos_y, int move_num){
+void move_pawn(char pos_x, char pos_y, char move_num){
 	
 	piece *piece = board[pos_y][pos_x];
 	
-	if ((move_num == 1) && (piece->moves_avail.pawn_avail[move_num-1])){ //we want to move 2 squares to front
-		piece->pos_y = piece->pos_y + (piece->side*2);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	if ((move_num == 1) && (piece->pawn_avail[move_num-1])){ //we want to move 2 squares to front
+		piece->ypos = piece->ypos + (piece->side*2);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 2) && (piece->moves_avail.pawn_avail[move_num-1])){ //we want to move 1 square up
-		piece->pos_y = piece->pos_y + piece->side;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 2) && (piece->pawn_avail[move_num-1])){ //we want to move 1 square up
+		piece->ypos = piece->ypos + piece->side;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 3) && (piece->moves_avail.pawn_avail[move_num-1])){//we want to go diag right
-		piece->pos_y = piece->pos_y + piece->side;
-		piece->pos_x++;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 3) && (piece->pawn_avail[move_num-1])){//we want to go diag right
+		piece->ypos = piece->ypos + piece->side;
+		piece->xpos++;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 4) && (piece->moves_avail.pawn_avail[move_num-1])){//we want to go diag right
-		piece->pos_y = piece->pos_y + piece->side;
-		piece->pos_x--;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 4) && (piece->pawn_avail[move_num-1])){//we want to go diag right
+		piece->ypos = piece->ypos + piece->side;
+		piece->xpos--;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}		
 }
 
-void move_knight(int pos_x, int pos_y, int move_num){
+void move_knight(char pos_x, char pos_y, char move_num){
 	
 	piece *piece = board[pos_y][pos_x];
 	
-	if ((move_num == 1) && (piece->moves_avail.knight_avail[move_num-1])){ //we want to move big up right
-		piece->pos_y = piece->pos_y+2;
-		piece->pos_x = piece->pos_x+1;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	if ((move_num == 1) && (piece->knight_avail[move_num-1])){ //we want to move big up right
+		piece->ypos = piece->ypos+2;
+		piece->xpos = piece->xpos+1;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 2) && (piece->moves_avail.knight_avail[move_num-1])){ //we want to move small up right
-		piece->pos_y = piece->pos_y+1;
-		piece->pos_x = piece->pos_x+2;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 2) && (piece->knight_avail[move_num-1])){ //we want to move small up right
+		piece->ypos = piece->ypos+1;
+		piece->xpos = piece->xpos+2;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 3) && (piece->moves_avail.knight_avail[move_num-1])){ //we want to move small down right
-		piece->pos_y = piece->pos_y-1;
-		piece->pos_x = piece->pos_x+2;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 3) && (piece->knight_avail[move_num-1])){ //we want to move small down right
+		piece->ypos = piece->ypos-1;
+		piece->xpos = piece->xpos+2;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 4) && (piece->moves_avail.knight_avail[move_num-1])){ //we want to move big down right
-		piece->pos_y = piece->pos_y-2;
-		piece->pos_x = piece->pos_x+1;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 4) && (piece->knight_avail[move_num-1])){ //we want to move big down right
+		piece->ypos = piece->ypos-2;
+		piece->xpos = piece->xpos+1;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 5) && (piece->moves_avail.knight_avail[move_num-1])){ //we want to move big down left
-		piece->pos_y = piece->pos_y-2;
-		piece->pos_x = piece->pos_x-1;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 5) && (piece->knight_avail[move_num-1])){ //we want to move big down left
+		piece->ypos = piece->ypos-2;
+		piece->xpos = piece->xpos-1;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 6) && (piece->moves_avail.knight_avail[move_num-1])){ //we want to move small down left
-		piece->pos_y = piece->pos_y-1;
-		piece->pos_x = piece->pos_x-2;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 6) && (piece->knight_avail[move_num-1])){ //we want to move small down left
+		piece->ypos = piece->ypos-1;
+		piece->xpos = piece->xpos-2;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 7) && (piece->moves_avail.knight_avail[move_num-1])){ //we want to move small up left
-		piece->pos_y = piece->pos_y+1;
-		piece->pos_x = piece->pos_x-2;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 7) && (piece->knight_avail[move_num-1])){ //we want to move small up left
+		piece->ypos = piece->ypos+1;
+		piece->xpos = piece->xpos-2;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 8) && (piece->moves_avail.knight_avail[move_num-1])){ //we want to move big up left
-		piece->pos_y = piece->pos_y+2;
-		piece->pos_x = piece->pos_x-1;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 8) && (piece->knight_avail[move_num-1])){ //we want to move big up left
+		piece->ypos = piece->ypos+2;
+		piece->xpos = piece->xpos-1;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}	
 }
 
-void move_king(int pos_x, int pos_y, int move_num){
+void move_king(char pos_x, char pos_y, char move_num){
 	
 	piece *piece = board[pos_y][pos_x];
 	
-	if ((move_num == 1) && (piece->moves_avail.king_avail[move_num-1])){ //we want to move up front
-		piece->pos_y = piece->pos_y+1;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	if ((move_num == 1) && (piece->king_avail[move_num-1])){ //we want to move up front
+		piece->ypos = piece->ypos+1;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 2) && (piece->moves_avail.king_avail[move_num-1])){ //we want to move up right
-		piece->pos_y = piece->pos_y+1;
-		piece->pos_x = piece->pos_x+1;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 2) && (piece->king_avail[move_num-1])){ //we want to move up right
+		piece->ypos = piece->ypos+1;
+		piece->xpos = piece->xpos+1;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 3) && (piece->moves_avail.king_avail[move_num-1])){ //we want to move right
-		piece->pos_x = piece->pos_x+1;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 3) && (piece->king_avail[move_num-1])){ //we want to move right
+		piece->xpos = piece->xpos+1;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 4) && (piece->moves_avail.king_avail[move_num-1])){ //we want to move down right
-		piece->pos_y = piece->pos_y-1;
-		piece->pos_x = piece->pos_x+1;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 4) && (piece->king_avail[move_num-1])){ //we want to move down right
+		piece->ypos = piece->ypos-1;
+		piece->xpos = piece->xpos+1;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 5) && (piece->moves_avail.king_avail[move_num-1])){ //we want to move down
-		piece->pos_y = piece->pos_y-1;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 5) && (piece->king_avail[move_num-1])){ //we want to move down
+		piece->ypos = piece->ypos-1;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 6) && (piece->moves_avail.king_avail[move_num-1])){ //we want to move down left
-		piece->pos_y = piece->pos_y-1;
-		piece->pos_x = piece->pos_x-1;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 6) && (piece->king_avail[move_num-1])){ //we want to move down left
+		piece->ypos = piece->ypos-1;
+		piece->xpos = piece->xpos-1;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 7) && (piece->moves_avail.king_avail[move_num-1])){ //we want to move left
-		piece->pos_x = piece->pos_x-1;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 7) && (piece->king_avail[move_num-1])){ //we want to move left
+		piece->xpos = piece->xpos-1;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num == 8) && (piece->moves_avail.king_avail[move_num-1])){ //we want to move up left
-		piece->pos_y = piece->pos_y+1;
-		piece->pos_x = piece->pos_x-1;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num == 8) && (piece->king_avail[move_num-1])){ //we want to move up left
+		piece->ypos = piece->ypos+1;
+		piece->xpos = piece->xpos-1;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}	
 }
 
-void move_queen(int pos_x, int pos_y, int move_num){
+void move_queen(char pos_x, char pos_y, char move_num){
 	
 	piece *piece = board[pos_y][pos_x];
 	
-	if ((move_num < 8) && (piece->moves_avail.queen_avail[move_num-1])){ //we want to move up line
-		piece->pos_y = piece->pos_y+move_num;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	if ((move_num < 8) && (piece->queen_avail[move_num-1])){ //we want to move up line
+		piece->ypos = piece->ypos+move_num;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num < 15) && (piece->moves_avail.queen_avail[move_num-1])){ //we want to move diag up right
-		piece->pos_y = piece->pos_y+(move_num-7);
-		piece->pos_x = piece->pos_x+(move_num-7);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num < 15) && (piece->queen_avail[move_num-1])){ //we want to move diag up right
+		piece->ypos = piece->ypos+(move_num-7);
+		piece->xpos = piece->xpos+(move_num-7);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num < 22) && (piece->moves_avail.queen_avail[move_num-1])){ //we want to move right
-		piece->pos_x = piece->pos_x+(move_num-14);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num < 22) && (piece->queen_avail[move_num-1])){ //we want to move right
+		piece->xpos = piece->xpos+(move_num-14);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num < 29) && (piece->moves_avail.queen_avail[move_num-1])){ //we want to move down right
-		piece->pos_y = piece->pos_y-(move_num-21);
-		piece->pos_x = piece->pos_x+(move_num-21);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num < 29) && (piece->queen_avail[move_num-1])){ //we want to move down right
+		piece->ypos = piece->ypos-(move_num-21);
+		piece->xpos = piece->xpos+(move_num-21);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num < 36) && (piece->moves_avail.queen_avail[move_num-1])){ //we want to move down
-		piece->pos_y = piece->pos_y-(move_num-28);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num < 36) && (piece->queen_avail[move_num-1])){ //we want to move down
+		piece->ypos = piece->ypos-(move_num-28);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num < 43) && (piece->moves_avail.queen_avail[move_num-1])){ //we want to move down left
-		piece->pos_y = piece->pos_y-(move_num-21);
-		piece->pos_x = piece->pos_x-(move_num-21);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num < 43) && (piece->queen_avail[move_num-1])){ //we want to move down left
+		piece->ypos = piece->ypos-(move_num-21);
+		piece->xpos = piece->xpos-(move_num-21);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num < 50) && (piece->moves_avail.queen_avail[move_num-1])){ //we want to move left
-		piece->pos_x = piece->pos_x-(move_num-42);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num < 50) && (piece->queen_avail[move_num-1])){ //we want to move left
+		piece->xpos = piece->xpos-(move_num-42);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num < 57) && (piece->moves_avail.queen_avail[move_num-1])){ //we want to move up left
-		piece->pos_y = piece->pos_y+(move_num-21);
-		piece->pos_x = piece->pos_x-(move_num-21);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num < 57) && (piece->queen_avail[move_num-1])){ //we want to move up left
+		piece->ypos = piece->ypos+(move_num-21);
+		piece->xpos = piece->xpos-(move_num-21);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}	
 }
 
-void move_rook(int pos_x, int pos_y, int move_num){
+void move_rook(char pos_x, char pos_y, char move_num){
 	
 	piece *piece = board[pos_y][pos_x];
 	
-	if ((move_num < 8) && (piece->moves_avail.rook_avail[move_num-1])){ //we want to move up line
-		piece->pos_y = piece->pos_y+move_num;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	if ((move_num < 8) && (piece->rook_avail[move_num-1])){ //we want to move up line
+		piece->ypos = piece->ypos+move_num;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num < 15) && (piece->moves_avail.rook_avail[move_num-1])){ //we want to move right
-		piece->pos_x = piece->pos_x+(move_num-7);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num < 15) && (piece->rook_avail[move_num-1])){ //we want to move right
+		piece->xpos = piece->xpos+(move_num-7);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num < 22) && (piece->moves_avail.rook_avail[move_num-1])){ //we want to move down
-		piece->pos_y = piece->pos_y-(move_num-14);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num < 22) && (piece->rook_avail[move_num-1])){ //we want to move down
+		piece->ypos = piece->ypos-(move_num-14);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num < 29) && (piece->moves_avail.rook_avail[move_num-1])){ //we want to move left
-		piece->pos_x = piece->pos_x-(move_num-21);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num < 29) && (piece->rook_avail[move_num-1])){ //we want to move left
+		piece->xpos = piece->xpos-(move_num-21);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
 }
 
-void move_bishop(int pos_x, int pos_y, int move_num){
+void move_bishop(char pos_x, char pos_y, char move_num){
 	
 	piece *piece = board[pos_y][pos_x];
 	
-	if ((move_num < 8) && (piece->moves_avail.bishop_avail[move_num-1])){ //we want to move diag up right
-		piece->pos_y = piece->pos_y+move_num;
-		piece->pos_x = piece->pos_x+move_num;
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	if ((move_num < 8) && (piece->bishop_avail[move_num-1])){ //we want to move diag up right
+		piece->ypos = piece->ypos+move_num;
+		piece->xpos = piece->xpos+move_num;
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num < 15) && (piece->moves_avail.bishop_avail[move_num-1])){ //we want to move down right
-		piece->pos_y = piece->pos_y-(move_num-7);
-		piece->pos_x = piece->pos_x+(move_num-7);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num < 15) && (piece->bishop_avail[move_num-1])){ //we want to move down right
+		piece->ypos = piece->ypos-(move_num-7);
+		piece->xpos = piece->xpos+(move_num-7);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num < 22) && (piece->moves_avail.bishop_avail[move_num-1])){ //we want to move down left
-		piece->pos_y = piece->pos_y-(move_num-14);
-		piece->pos_x = piece->pos_x-(move_num-14);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num < 22) && (piece->bishop_avail[move_num-1])){ //we want to move down left
+		piece->ypos = piece->ypos-(move_num-14);
+		piece->xpos = piece->xpos-(move_num-14);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
-	else if ((move_num < 29) && (piece->moves_avail.bishop_avail[move_num-1])){ //we want to move up left
-		piece->pos_y = piece->pos_y+(move_num-21);
-		piece->pos_x = piece->pos_x-(move_num-21);
-		capture_piece(pos_x, pos_y, piece->pos_x, piece->pos_y);
+	else if ((move_num < 29) && (piece->bishop_avail[move_num-1])){ //we want to move up left
+		piece->ypos = piece->ypos+(move_num-21);
+		piece->xpos = piece->xpos-(move_num-21);
+		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}	
 }
 
-void move_piece(int pos_x, int pos_y, int move_num){
+void move_piece(char pos_x, char pos_y, char move_num){
 	
 	piece *piece = board[pos_y][pos_x];
-	int piece_name = piece->name;
+	char piece_name = piece->name;
 	
 	if (piece_name == PAWN)
 		move_pawn(pos_x, pos_y, move_num);
@@ -760,7 +767,7 @@ void move_piece(int pos_x, int pos_y, int move_num){
 }
 
 
-*/
+
 // take keyboard commands. for testing purpose
 static PT_THREAD (protothread_keyboard(struct pt *pt)){
     PT_BEGIN(pt);
