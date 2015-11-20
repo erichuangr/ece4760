@@ -11,9 +11,9 @@
 #define ROOK   3
 #define QUEEN  4
 #define KING   5
-#define A      0
-#define B      1
-#define C      2
+#define IDLE   0
+#define CALC   1
+#define MOVE   2
 #define D      3
 #define E      4
 #define F      5
@@ -22,16 +22,12 @@
 
 static double value;
 char buffer[60];
-static char cmd[1];
-static struct pt pt_timer, pt_key, pt_input, pt_output, pt_DMA_output ;
-int sys_time_seconds;
+static char cmd[2];
+static struct pt pt_timer, pt_key, pt_move, pt_input, pt_output, pt_DMA_output ;
+int sys_time_seconds, state;
+char init_x, init_y, end_x, end_y;
 
 char current_player = 1;
-
-volatile double desired_motor_speed;
-volatile double pid_prop_gain;
-volatile double pid_int_gain;
-volatile double pid_diff_gain;
 
 typedef struct piece{
 	
@@ -56,8 +52,6 @@ piece *captured[29] = {0}; //captured elements
 int captured_index = 0;
 
 piece *selected;
-char selected_loc[];
-char target_loc[];
 
 piece *pawn;
 piece *rook;
@@ -164,7 +158,6 @@ void initialize_board(){
 	}
 	
 }
-
 void calc_pawn_moves(piece *pawn){
 	
 	char pawn_x = pawn->xpos;
@@ -200,8 +193,6 @@ void calc_pawn_moves(piece *pawn){
 		pawn->pawn_avail[1] = 0;
 	
 }
-
-
 void calc_bish_moves(piece *bishop){
 	
 	char bish_x = bishop->xpos;
@@ -253,7 +244,6 @@ void calc_bish_moves(piece *bishop){
 		}
 	}
 }
-
 void calc_rook_moves(piece *rook){
 	
 	char rook_x = rook->xpos;
@@ -305,7 +295,6 @@ void calc_rook_moves(piece *rook){
 		}
 	}
 }
-
 void calc_queen_moves(piece *queen){
 	
 	char queen_x = queen->xpos;
@@ -410,7 +399,6 @@ void calc_queen_moves(piece *queen){
 	}
 	
 }
-
 void calc_king_moves(piece *king){
 	
 	char king_x = king->xpos;
@@ -465,7 +453,6 @@ void calc_king_moves(piece *king){
 		king->king_avail[7] = 0;
 	
 }
-
 void calc_knight_moves(piece *knight){
 	
 	char knight_x = knight->xpos;
@@ -519,14 +506,8 @@ void calc_knight_moves(piece *knight){
 	else //this move is invalid
 		knight->knight_avail[7] = 0;
 }
-
 void calc_piece_moves(){
-	
-    char pos_x = selected_loc[0];
-    char pos_y = selected_loc[1];
-    
-	piece *piece = board[pos_y][pos_x];
-	char piece_name = piece->name;
+	char piece_name = board[init_y][init_x];
 	
 	if (piece_name == PAWN)
 		calc_pawn_moves(piece);
@@ -539,10 +520,12 @@ void calc_piece_moves(){
 	else if (piece_name == QUEEN)
 		calc_queen_moves(piece);
 	else if (piece_name == KING)
-		calc_king_moves(piece);
-	
+		calc_king_moves(piece);	
+    tft_fillRect(0, 30, 240, 20, ILI9340_BLACK);// x,y,w,h,color
+    tft_setCursor(0, 30);
+    tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
+    sprintf(buffer,"%s", piece_name);
 }
-
 void capture_piece(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	if (board[new_pos_y][new_pos_x] != 0){ //store captured piece in captured array
 		captured[captured_index] = board[new_pos_y][new_pos_x];
@@ -554,7 +537,6 @@ void capture_piece(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	board[new_pos_y][new_pos_x] = board[pos_y][pos_x];
 	board[pos_y][pos_x] = 0;
 }
-
 void move_pawn(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	
     char move_num = 0;
@@ -588,7 +570,6 @@ void move_pawn(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}		
 }
-
 void move_knight(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	
     char move_num = 0;
@@ -652,7 +633,6 @@ void move_knight(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}	
 }
-
 void move_king(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	
     char move_num = 0;
@@ -712,7 +692,6 @@ void move_king(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}	
 }
-
 void move_queen(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	
     char move_num = 57;
@@ -775,9 +754,7 @@ void move_queen(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}	
 }
-
-
-void move_rook(char pos_x, char pos_y, char move_num){
+void move_rook(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	
 	piece *piece = board[pos_y][pos_x];
 	
@@ -811,8 +788,7 @@ void move_rook(char pos_x, char pos_y, char move_num){
 		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}
 }
-
-void move_bishop(char pos_x, char pos_y, char move_num){
+void move_bishop(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	
 	piece *piece = board[pos_y][pos_x];
     
@@ -850,33 +826,23 @@ void move_bishop(char pos_x, char pos_y, char move_num){
 		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
 	}	
 }
-
 void move_piece(){
-	
-    char pos_x = selected_loc[0];
-    char pos_y = selected_loc[1];
-    
-    char end_pos_x = target_loc[0];
-    char end_pos_y = target_loc[1];
-    
-	piece *piece = board[pos_y][pos_x];
-	char piece_name = piece->name;
+	char piece_name = board[init_y][init_x]->name;
 	
 	if (piece_name == PAWN)
-		move_pawn(pos_x, pos_y, end_pos_x, end_pos_y);
+		move_pawn(init_x, init_y, end_x, end_y);
     else if (piece_name == BISHOP)
-		move_bishop(pos_x, pos_y, end_pos_x, end_pos_y);
+		move_bishop(init_x, init_y, end_x, end_y);
 	else if (piece_name == KNIGHT)
-		move_knight(pos_x, pos_y, end_pos_x, end_pos_y);
+		move_knight(init_x, init_y, end_x, end_y);
 	else if (piece_name == ROOK)
-		move_rook(pos_x, pos_y, end_pos_x, end_pos_y);
+		move_rook(init_x, init_y, end_x, end_y);
 	else if (piece_name == QUEEN)
-		move_queen(pos_x, pos_y, end_pos_x, end_pos_y);
+		move_queen(init_x, init_y, end_x, end_y);
 	else if (piece_name == KING)
-		move_king(pos_x, pos_y, end_pos_x, end_pos_y);
+		move_king(init_x, init_y, end_x, end_y);
 	
 }
-
 // take keyboard commands. for testing purpose
 static PT_THREAD (protothread_keyboard(struct pt *pt)){
     PT_BEGIN(pt);
@@ -893,52 +859,68 @@ static PT_THREAD (protothread_keyboard(struct pt *pt)){
         // returns when the thread dies
         // in this case, when <enter> is pushed
         // now parse the string
-         sscanf(PT_term_buffer, "%s %lf", cmd, &value);
-         switch(cmd[0]){
-            case 's': // command form: w
-                desired_motor_speed = value;
-                break;
-            case 'p': // command form: w
-                pid_prop_gain = value;
-                break;
-            case 'i': // command form: w
-                pid_int_gain = value;
-                break;
-            case 'd': // command form: w
-                pid_diff_gain = value;
-                break;
-             case 'z':
-                printf("%.1f\t%.1f\t%.1f\t%.1f\n\r", desired_motor_speed, pid_prop_gain, pid_int_gain, pid_diff_gain);
-                break;
-         }
-            // never exit while
-      } // END WHILE(1)
+        sscanf(PT_term_buffer, "%s", cmd);
+        if(cmd[0] == 'z') 
+            //printf("%i\t", init_x);
+            printf("%i%1i\t %i%1i\n\r", init_x, init_y, end_x, end_y);      
+        else if(cmd[0] >= 97 && cmd[0] <= 104 && cmd[1] >= 48 && cmd[1] <= 56)   {
+            if(state == IDLE)   {
+                init_x = cmd[0] - 97;
+                init_y = cmd[1] - 49;
+                state++;
+            }
+            else if (state == CALC) {
+                end_x = cmd[0] - 97;
+                end_y = cmd[1] - 49;
+                state = 0;
+            }
+        }
+    } // END WHILE(1)
     PT_END(pt);
 }
 
-// === Timer Thread =================================================
-// have two timers, one for each player that will keep track of total time they have
+// === TFT Print Thread =================================================
+// print the output of the chessboard
 static PT_THREAD (protothread_timer(struct pt *pt)){
     PT_BEGIN(pt);
     int i, j;
     tft_setCursor(0, 0);
     tft_setTextColor(ILI9340_WHITE);  tft_setTextSize(1);
-    tft_writeString("Time in seconds since boot\n");
+    tft_writeString("Refresh every 2 secs\n");
+    
+    //Print the chess board outer parameter A-H; 1-8
+    tft_setTextColor(ILI9340_GREEN);  tft_setTextSize(2);
+    for(i = 0; i < 8; i++)  {
+        tft_setCursor(50+20*i, 60);
+        sprintf(buffer, "%c", 65+i);
+        tft_writeString(buffer);
+        tft_setCursor(50+20*i, 240);
+        sprintf(buffer, "%c", 65+i);
+        tft_writeString(buffer);
+        
+        tft_setCursor(30, 220-20*i);
+        sprintf(buffer, "%i", i+1);
+        tft_writeString(buffer);
+        tft_setCursor(210, 220-20*i);
+        sprintf(buffer, "%i", i+1);
+        tft_writeString(buffer);
+    }
+        //updates the chess board each iteration
         while(1) {
             // yield time 1 second
-            PT_YIELD_TIME_msec(1000) ;
+            PT_YIELD_TIME_msec(2000) ;
             sys_time_seconds++ ;
             // draw sys_time
-            tft_fillRoundRect(0,10, 100, 14, 1, ILI9340_BLACK);// x,y,w,h,radius,color
+            tft_fillRect(0, 10, 240, 20, ILI9340_BLACK);// x,y,w,h,color
+            tft_fillRect(50, 80, 160, 160, ILI9340_BLACK);// x,y,w,h,color
             tft_setCursor(0, 10);
             tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
             sprintf(buffer,"%d", sys_time_seconds);
             tft_writeString(buffer);
             for(j = 0; j < 8; j++ ) {
                 for(i = 0; i < 8; i++)  {
-                    //tft_fillRoundRect(30+20*i, 30+20*j, 100, 14, 1, ILI9340_BLACK);// x,y,w,h,radius,color
-                    tft_setCursor(30+20*j, 30+20*i);
-                    tft_setTextSize(2);
+                    tft_setCursor(50+20*j, 220-20*i);
+                    tft_setTextSize(2);                  
                     if(board[i][j] == NULL) {                       
                         tft_setTextColor(ILI9340_BLUE); 
                         tft_writeString("-");
@@ -967,17 +949,16 @@ static PT_THREAD (protothread_timer(struct pt *pt)){
         } // END WHILE(1)
   PT_END(pt);
 } // timer thread
-
 // === Calculate Move and Make Move Thread =============================================
 static PT_THREAD (protothread_move(struct pt *pt)){
     PT_BEGIN(pt);
-      while(1) {
-          
-        // if button or command is entered for both start and end, make the move
-        calc_piece_moves();
-		move_piece();
-		
-      } // END WHILE(1)
+        while(1) {       
+          // if button or command is entered for both start and end, make the move
+            if(state == IDLE);
+                //calc_piece_moves();
+            else if(state == CALC);
+                //move_piece();
+        } // END WHILE(1)
 	PT_END(pt);
 } // animation thread
 
@@ -994,7 +975,7 @@ void main(void) {
   PT_INIT(&pt_timer);
   PT_INIT(&pt_key);
   //PT_INIT(&pt_board);
-  //PT_INIT(&pt_move);
+  PT_INIT(&pt_move);
 
   // init the display
   tft_init_hw();
@@ -1008,7 +989,7 @@ void main(void) {
       PT_SCHEDULE(protothread_keyboard(&pt_key));
       PT_SCHEDULE(protothread_timer(&pt_timer));
       //PT_SCHEDULE(protothread_board(&pt_board));
-      //PT_SCHEDULE(protothread_move(&pt_move));
+      PT_SCHEDULE(protothread_move(&pt_move));
   }
  } // main
 
