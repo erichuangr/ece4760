@@ -26,6 +26,8 @@ static char cmd[1];
 static struct pt pt_timer, pt_key, pt_input, pt_output, pt_DMA_output ;
 int sys_time_seconds;
 
+char current_player = 1;
+
 volatile double desired_motor_speed;
 volatile double pid_prop_gain;
 volatile double pid_int_gain;
@@ -52,6 +54,10 @@ typedef struct piece{
 piece *board[8][8] = {0};
 piece *captured[29] = {0}; //captured elements
 int captured_index = 0;
+
+piece *selected;
+char selected_loc[];
+char target_loc[];
 
 piece *pawn;
 piece *rook;
@@ -514,8 +520,11 @@ void calc_knight_moves(piece *knight){
 		knight->knight_avail[7] = 0;
 }
 
-void calc_piece_moves(char pos_x, char pos_y){
+void calc_piece_moves(){
 	
+    char pos_x = selected_loc[0];
+    char pos_y = selected_loc[1];
+    
 	piece *piece = board[pos_y][pos_x];
 	char piece_name = piece->name;
 	
@@ -842,41 +851,29 @@ void move_bishop(char pos_x, char pos_y, char move_num){
 	}	
 }
 
-void move_piece(char orig_pos[], char end_mov[]){
+void move_piece(){
 	
-    char pos_x = orig_pos[0];
-    char pos_y = orig_pos[1];
+    char pos_x = selected_loc[0];
+    char pos_y = selected_loc[1];
     
-    char end_pos_x = end_mov[0];
-    char end_pos_y = end_mov[1];
+    char end_pos_x = target_loc[0];
+    char end_pos_y = target_loc[1];
     
 	piece *piece = board[pos_y][pos_x];
 	char piece_name = piece->name;
 	
-	if (piece_name == PAWN){
-        calc_pawn_moves(piece);
-		move_pawn(pos_x, pos_y, end_pos_x, end_pos_y);c
-    }
-	else if (piece_name == BISHOP){
-        calc_bish_moves(piece);
+	if (piece_name == PAWN)
+		move_pawn(pos_x, pos_y, end_pos_x, end_pos_y);
+    else if (piece_name == BISHOP)
 		move_bishop(pos_x, pos_y, end_pos_x, end_pos_y);
-    }
-	else if (piece_name == KNIGHT){
-        calc_knight_moves(piece);
+	else if (piece_name == KNIGHT)
 		move_knight(pos_x, pos_y, end_pos_x, end_pos_y);
-    }
-	else if (piece_name == ROOK){
-        calc_rook_moves(piece);
+	else if (piece_name == ROOK)
 		move_rook(pos_x, pos_y, end_pos_x, end_pos_y);
-    }
-	else if (piece_name == QUEEN){
-        calc_queen_moves(piece);
+	else if (piece_name == QUEEN)
 		move_queen(pos_x, pos_y, end_pos_x, end_pos_y);
-    }
-	else if (piece_name == KING){
-        calc_king_moves(piece);
+	else if (piece_name == KING)
 		move_king(pos_x, pos_y, end_pos_x, end_pos_y);
-    }
 	
 }
 
@@ -975,16 +972,15 @@ static PT_THREAD (protothread_timer(struct pt *pt)){
 static PT_THREAD (protothread_move(struct pt *pt)){
     PT_BEGIN(pt);
       while(1) {
-
-		//on button press, global pos_x and global pos_y and global move should be set
-		selected = board[button_y][button_x];
-		calc_piece_moves(selected);
-		move_piece(button_x, button_y, button_move);
+          
+        // if button or command is entered for both start and end, make the move
+        calc_piece_moves();
+		move_piece();
 		
       } // END WHILE(1)
 	PT_END(pt);
 } // animation thread
-*/
+
 // === Main  ======================================================
 void main(void) {
   // === config threads ==========
