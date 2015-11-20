@@ -542,10 +542,9 @@ void capture_piece(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	board[new_pos_y][new_pos_x] = board[pos_y][pos_x];
 	board[pos_y][pos_x] = 0;
 }
-void move_pawn(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
+void move_pawn(piece *piece1, char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	
   char move_num = 0;
-	piece *piece = board[pos_y][pos_x];
     
     if ((abs(pos_x - new_pos_x) == 0) && (abs(pos_y - new_pos_y) == 2)) //2 squares up
         move_num = 1;
@@ -556,23 +555,23 @@ void move_pawn(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
     else if (((pos_x - new_pos_x) == 1) && (abs(pos_y - new_pos_y) == 1)) //diag left
         move_num = 4;
 	
-	if ((move_num == 1) && (piece->pawn_avail[move_num-1])){ //we want to move 2 squares to front
-		piece->ypos = piece->ypos + (piece->side*2);
-		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
+	if ((move_num == 1) && (piece1->avail[move_num-1])){ //we want to move 2 squares to front
+		piece1->ypos = piece1->ypos + (piece1->side*2);
+		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 2) && (piece->pawn_avail[move_num-1])){ //we want to move 1 square up
-		piece->ypos = piece->ypos + piece->side;
-		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
+	else if ((move_num == 2) && (piece1->avail[move_num-1])){ //we want to move 1 square up
+		piece1->ypos = piece1->ypos + piece1->side;
+		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 3) && (piece->pawn_avail[move_num-1])){//we want to go diag right
-		piece->ypos = piece->ypos + piece->side;
-		piece->xpos++;
-		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
+	else if ((move_num == 3) && (piece1->avail[move_num-1])){//we want to go diag right
+		piece1->ypos = piece1->ypos + piece1->side;
+		piece1->xpos++;
+		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 4) && (piece->pawn_avail[move_num-1])){//we want to go diag right
-		piece->ypos = piece->ypos + piece->side;
-		piece->xpos--;
-		capture_piece(pos_x, pos_y, piece->xpos, piece->ypos);
+	else if ((move_num == 4) && (piece1->avail[move_num-1])){//we want to go diag right
+		piece1->ypos = piece1->ypos + piece1->side;
+		piece1->xpos--;
+		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}		
 }
 void move_knight(piece *piece1, char pos_x, char pos_y, char new_pos_x, char new_pos_y){
@@ -596,42 +595,42 @@ void move_knight(piece *piece1, char pos_x, char pos_y, char new_pos_x, char new
 	else if (((pos_x - new_pos_x) == 1) && ((pos_y - new_pos_y) == 1)) //big up left
 			move_num = 8;
     
-	if ((move_num == 1) && (piece1->knight_avail[move_num-1])){ //we want to move big up right
+	if ((move_num == 1) && (piece1->avail[move_num-1])){ //we want to move big up right
 		piece1->ypos = piece1->ypos-2;
 		piece1->xpos = piece1->xpos+1;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 2) && (piece1->knight_avail[move_num-1])){ //we want to move small up right
+	else if ((move_num == 2) && (piece1->avail[move_num-1])){ //we want to move small up right
 		piece1->ypos = piece1->ypos-1;
 		piece1->xpos = piece1->xpos+2;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 3) && (piece1->knight_avail[move_num-1])){ //we want to move small down right
+	else if ((move_num == 3) && (piece1->avail[move_num-1])){ //we want to move small down right
 		piece1->ypos = piece1->ypos+1;
 		piece1->xpos = piece1->xpos+2;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 4) && (piece1->knight_avail[move_num-1])){ //we want to move big down right
+	else if ((move_num == 4) && (piece1->avail[move_num-1])){ //we want to move big down right
 		piece1->ypos = piece1->ypos+2;
 		piece1->xpos = piece1->xpos+1;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 5) && (piece1->knight_avail[move_num-1])){ //we want to move big down left
+	else if ((move_num == 5) && (piece1->avail[move_num-1])){ //we want to move big down left
 		piece1->ypos = piece1->ypos+2;
 		piece1->xpos = piece1->xpos-1;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 6) && (piece1->knight_avail[move_num-1])){ //we want to move small down left
+	else if ((move_num == 6) && (piece1->avail[move_num-1])){ //we want to move small down left
 		piece1->ypos = piece1->ypos+1;
 		piece1->xpos = piece1->xpos-2;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 7) && (piece1->knight_avail[move_num-1])){ //we want to move small up left
+	else if ((move_num == 7) && (piece1->avail[move_num-1])){ //we want to move small up left
 		piece1->ypos = piece1->ypos-1;
 		piece1->xpos = piece1->xpos-2;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 8) && (piece1->knight_avail[move_num-1])){ //we want to move big up left
+	else if ((move_num == 8) && (piece1->avail[move_num-1])){ //we want to move big up left
 		piece1->ypos = piece1->ypos-2;
 		piece1->xpos = piece1->xpos-1;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
@@ -658,38 +657,38 @@ void move_king(piece *piece1, char pos_x, char pos_y, char new_pos_x, char new_p
 	else if (((pos_x - new_pos_x) == 1) && ((pos_y - new_pos_y) == 1)) //up left
 			move_num = 8;
 	
-	if ((move_num == 1) && (piece1->king_avail[move_num-1])){ //we want to move up front
+	if ((move_num == 1) && (piece1->avail[move_num-1])){ //we want to move up front
 		piece1->ypos = piece1->ypos-1;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 2) && (piece1->king_avail[move_num-1])){ //we want to move up right
+	else if ((move_num == 2) && (piece1->avail[move_num-1])){ //we want to move up right
 		piece1->ypos = piece1->ypos-1;
 		piece1->xpos = piece1->xpos+1;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 3) && (piece1->king_avail[move_num-1])){ //we want to move right
+	else if ((move_num == 3) && (piece1->avail[move_num-1])){ //we want to move right
 		piece1->xpos = piece1->xpos+1;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 4) && (piece1->king_avail[move_num-1])){ //we want to move down right
+	else if ((move_num == 4) && (piece1->avail[move_num-1])){ //we want to move down right
 		piece1->ypos = piece1->ypos+1;
 		piece1->xpos = piece1->xpos+1;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 5) && (piece1->king_avail[move_num-1])){ //we want to move down
+	else if ((move_num == 5) && (piece1->avail[move_num-1])){ //we want to move down
 		piece1->ypos = piece1->ypos+1;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 6) && (piece1->king_avail[move_num-1])){ //we want to move down left
+	else if ((move_num == 6) && (piece1->avail[move_num-1])){ //we want to move down left
 		piece1->ypos = piece1->ypos+1;
 		piece1->xpos = piece1->xpos-1;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 7) && (piece1->king_avail[move_num-1])){ //we want to move left
+	else if ((move_num == 7) && (piece1->avail[move_num-1])){ //we want to move left
 		piece1->xpos = piece1->xpos-1;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num == 8) && (piece1->king_avail[move_num-1])){ //we want to move up left
+	else if ((move_num == 8) && (piece1->avail[move_num-1])){ //we want to move up left
 		piece1->ypos = piece1->ypos-1;
 		piece1->xpos = piece1->xpos-1;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
@@ -719,38 +718,38 @@ void move_queen(piece *piece1, char pos_x, char pos_y, char new_pos_x, char new_
 	else if ((xdiff > 0) && (ydiff > 0) && (xdiff == ydiff)) //up left
 			move_num = 50 + ydiff;
 	
-	if ((move_num < 8) && (piece1->queen_avail[move_num-1])){ //we want to move up line
+	if ((move_num < 8) && (piece1->avail[move_num-1])){ //we want to move up line
 		piece1->ypos = piece1->ypos-move_num;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num < 15) && (piece1->queen_avail[move_num-1])){ //we want to move diag up right
+	else if ((move_num < 15) && (piece1->avail[move_num-1])){ //we want to move diag up right
 		piece1->ypos = piece1->ypos-(move_num-7);
 		piece1->xpos = piece1->xpos+(move_num-7);
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num < 22) && (piece1->queen_avail[move_num-1])){ //we want to move right
+	else if ((move_num < 22) && (piece1->avail[move_num-1])){ //we want to move right
 		piece1->xpos = piece1->xpos+(move_num-14);
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num < 29) && (piece1->queen_avail[move_num-1])){ //we want to move down right
+	else if ((move_num < 29) && (piece1->avail[move_num-1])){ //we want to move down right
 		piece1->ypos = piece1->ypos+(move_num-21);
 		piece1->xpos = piece1->xpos+(move_num-21);
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num < 36) && (piece1->queen_avail[move_num-1])){ //we want to move down
+	else if ((move_num < 36) && (piece1->avail[move_num-1])){ //we want to move down
 		piece1->ypos = piece1->ypos+(move_num-28);
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num < 43) && (piece1->queen_avail[move_num-1])){ //we want to move down left
+	else if ((move_num < 43) && (piece1->avail[move_num-1])){ //we want to move down left
 		piece1->ypos = piece1->ypos+(move_num-21);
 		piece1->xpos = piece1->xpos-(move_num-21);
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num < 50) && (piece1->queen_avail[move_num-1])){ //we want to move left
+	else if ((move_num < 50) && (piece1->avail[move_num-1])){ //we want to move left
 		piece1->xpos = piece1->xpos-(move_num-42);
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num < 57) && (piece1->queen_avail[move_num-1])){ //we want to move up left
+	else if ((move_num < 57) && (piece1->avail[move_num-1])){ //we want to move up left
 		piece1->ypos = piece1->ypos-(move_num-21);
 		piece1->xpos = piece1->xpos-(move_num-21);
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
@@ -771,19 +770,19 @@ void move_rook(piece *piece1, char pos_x, char pos_y, char new_pos_x, char new_p
 	else if ((xdiff > 0) && (ydiff == 0)) //left
 			move_num = 22 + xdiff;
     
-	if ((move_num < 8) && (piece1->rook_avail[move_num-1])){ //we want to move up line
+	if ((move_num < 8) && (piece1->avail[move_num-1])){ //we want to move up line
 		piece1->ypos = piece1->ypos+move_num;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num < 15) && (piece1->rook_avail[move_num-1])){ //we want to move right
+	else if ((move_num < 15) && (piece1->avail[move_num-1])){ //we want to move right
 		piece1->xpos = piece1->xpos+(move_num-7);
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num < 22) && (piece1->rook_avail[move_num-1])){ //we want to move down
+	else if ((move_num < 22) && (piece1->avail[move_num-1])){ //we want to move down
 		piece1->ypos = piece1->ypos-(move_num-14);
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num < 29) && (piece1->rook_avail[move_num-1])){ //we want to move left
+	else if ((move_num < 29) && (piece1->avail[move_num-1])){ //we want to move left
 		piece1->xpos = piece1->xpos-(move_num-21);
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
@@ -803,22 +802,22 @@ void move_bishop(piece *piece1, char pos_x, char pos_y, char new_pos_x, char new
 	else if ((xdiff > 0) && (ydiff > 0) && (xdiff == ydiff)) //up left
 			move_num = 22 + ydiff;
 	
-	if ((move_num < 8) && (piece1->bishop_avail[move_num-1])){ //we want to move diag up right
+	if ((move_num < 8) && (piece1->avail[move_num-1])){ //we want to move diag up right
 		piece1->ypos = piece1->ypos-move_num;
 		piece1->xpos = piece1->xpos+move_num;
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num < 15) && (piece1->bishop_avail[move_num-1])){ //we want to move down right
+	else if ((move_num < 15) && (piece1->avail[move_num-1])){ //we want to move down right
 		piece1->ypos = piece1->ypos+(move_num-7);
 		piece1->xpos = piece1->xpos+(move_num-7);
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num < 22) && (piece1->bishop_avail[move_num-1])){ //we want to move down left
+	else if ((move_num < 22) && (piece1->avail[move_num-1])){ //we want to move down left
 		piece1->ypos = piece1->ypos+(move_num-14);
 		piece1->xpos = piece1->xpos-(move_num-14);
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}
-	else if ((move_num < 29) && (piece1->bishop_avail[move_num-1])){ //we want to move up left
+	else if ((move_num < 29) && (piece1->avail[move_num-1])){ //we want to move up left
 		piece1->ypos = piece1->ypos-(move_num-21);
 		piece1->xpos = piece1->xpos-(move_num-21);
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
