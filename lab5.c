@@ -5,40 +5,35 @@
 #include "tft_gfx.h"
 #include <stdlib.h>
 
-#define PAWN   0
-#define BISHOP 1
-#define KNIGHT 2
-#define ROOK   3
-#define QUEEN  4
-#define KING   5
+#define PAWN   1
+#define BISHOP 2
+#define KNIGHT 3
+#define ROOK   4
+#define QUEEN  5
+#define KING   6
+#define RESET  -1
 #define IDLE   0
 #define CALC   1
-#define MOVE   2
-#define D      3
-#define E      4
-#define F      5
-#define G      6
-#define H      7
 
 static double value;
 char buffer[60];
 static char cmd[2];
-static struct pt pt_timer, pt_key, pt_move, pt_input, pt_output, pt_DMA_output ;
-int sys_time_seconds, state;
-
+static struct pt pt_print, pt_key, pt_move, pt_input, pt_output, pt_DMA_output ;
+int sys_time_seconds, state = -1;
+static char signal = 1;
 char init_x, init_y, end_x, end_y; //positions that will be selected by user via buttons
 
 char current_player = 1;
 
 typedef struct piece{
 	
-	char name;      //what piece it is
-	char start;     //0 means moved this game
-	char alive;     //alive = 1, it's alive. 0 = dead
-	char side;      //side = 1, it's white. -1 = black
-  char xpos;      //ranges between a-h (a = 0, h = 7)
-  char ypos;      //ranges between 1 and 8 (1 = 0, 8 = 7) 
-  char avail[56]; //avail ranges. pawn 0-3, rook 0-27, queen, 0-56, bish 0-27, king and knight 0-7
+    char name;      //what piece it is
+    char start;     //0 means moved this game
+    char alive;     //alive = 1, it's alive. 0 = dead
+    char side;      //side = 1, it's white. -1 = black
+    char xpos;      //ranges between a-h (a = 0, h = 7)
+    char ypos;      //ranges between 1 and 8 (1 = 0, 8 = 7) 
+    char avail[56]; //avail ranges. pawn 0-3, rook 0-27, queen, 0-56, bish 0-27, king and knight 0-7
 }piece;
 
 // our 8x8 board of pieces
@@ -72,7 +67,7 @@ void initialize_board(){
 			pawn->side = side_loop;
 			pawn->xpos = i;
 			pawn->ypos = j;
-			pawn->avail = {0};
+			memset(pawn->avail, 0, sizeof(pawn->avail));
 		}	
 	}
 	
@@ -89,7 +84,7 @@ void initialize_board(){
 			rook->side = side_loop;
 			rook->xpos = i;
 			rook->ypos = j;
-			rook->avail = {0};
+			memset(rook->avail, 0, sizeof(rook->avail));
 		}
 	}
 	
@@ -106,7 +101,7 @@ void initialize_board(){
 			knight->side = side_loop;
 			knight->xpos = i;
 			knight->ypos = j;
-			knight->avail = {0};
+			memset(knight->avail, 0, sizeof(knight->avail));
 		}
 	}
 	
@@ -124,7 +119,7 @@ void initialize_board(){
 			bishop->side = side_loop;
 			bishop->xpos = i;
 			bishop->ypos = j;
-			bishop->avail = {0};
+			memset(bishop->avail, 0, sizeof(bishop->avail));
 		}
 	}
 	
@@ -140,7 +135,7 @@ void initialize_board(){
 		queen->side = side_loop;
 		queen->ypos = j;
 		queen->xpos = 3;
-		queen->avail = {0};
+		memset(queen->avail, 0, sizeof(queen->avail));
 	}
 	
 	side_loop = -1;
@@ -156,22 +151,18 @@ void initialize_board(){
 		king->side = side_loop;
 		king->xpos = 4;
 		king->ypos = j;
-		king->avail = {0};
+		memset(king->avail, 0, sizeof(king->avail));
 	}
 	
 }
-void calc_pawn_moves(piece *pawn){
-	
-	char pawn_x = pawn->xpos;
-	char pawn_y = pawn->ypos;
-	
+void calc_pawn_moves(piece *pawn){	
 	char pawn_y_sideff = pawn->ypos + (pawn->side * 2);
 	char pawn_y_sidef = pawn->ypos + (pawn->side * 1);
 	char pawn_x_sider = pawn->xpos + 1;
 	char pawn_x_sidel = pawn->xpos - 1;
 		
 	//two squares up
-	if (((pawn->start) && (board[pawn_y_sideff][pawn_x] == 0))) //no piece should be there
+	if (((pawn->start) && (board[pawn_y_sideff][pawn->xpos] == 0))) //no piece should be there
 		pawn->avail[0] = 1;
 	else
 		pawn->avail[0] = 0;
@@ -398,8 +389,7 @@ void calc_queen_moves(piece *queen){
 				break;
 			}
 		}
-	}
-	
+	}	
 }
 void calc_king_moves(piece *king){
 	
@@ -509,26 +499,49 @@ void calc_knight_moves(piece *knight){
 		knight->avail[7] = 0;
 }
 void calc_piece_moves(){
+    char piece_name = board[init_y][init_x]->name;
+    int i;
+    tft_fillRect(0, 30, 240, 20, ILI9340_BLACK);// x,y,w,h,color
+    tft_setCursor(0, 30);
+    tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
+    switch(piece_name)  {
+        case 1:
+            tft_writeString("Pawn");
+            break;
+        case 2:
+            tft_writeString("Bishop");
+            break;
+        case 3:
+            tft_writeString("Knight");
+            break;
+        case 4:
+            tft_writeString("Rook");
+            break;
+        case 5:
+            tft_writeString("Queen");
+            break;
+        case 6:
+            tft_writeString("King");
+            break;
+        default:
+            tft_writeString("Invalid Piece");          
+    }
 
-	char piece_name = board[init_y][init_x]->name;
-	
-	if (piece_name == PAWN)
-		calc_pawn_moves(piece);
-	else if (piece_name == BISHOP)
-		calc_bish_moves(piece);
-	else if (piece_name == KNIGHT)
-		calc_knight_moves(piece);
-	else if (piece_name == ROOK)
-		calc_rook_moves(piece);
-	else if (piece_name == QUEEN)
-		calc_queen_moves(piece);
-	else if (piece_name == KING)
-		calc_king_moves(piece);	
-		
-  tft_fillRect(0, 30, 240, 20, ILI9340_BLACK);// x,y,w,h,color
-  tft_setCursor(0, 30);
-  tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
-  sprintf(buffer,"%s", piece_name);
+    if (piece_name == PAWN)
+        calc_pawn_moves(board[init_y][init_x]);
+    /*else if (piece_name == BISHOP)
+        calc_bish_moves(board[init_y][init_x]);
+    else if (piece_name == KNIGHT)
+        calc_knight_moves(board[init_y][init_x]);
+    else if (piece_name == ROOK)
+        calc_rook_moves(board[init_y][init_x]);
+    else if (piece_name == QUEEN)
+        calc_queen_moves(board[init_y][init_x]);
+    else if (piece_name == KING)
+        calc_king_moves(board[init_y][init_x]);	
+    */ 
+    for( i = 0; i < 56; i++)
+        if()
 }
 void capture_piece(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 
@@ -544,7 +557,7 @@ void capture_piece(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 }
 void move_pawn(piece *piece1, char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	
-  char move_num = 0;
+    char move_num = 0;
     
     if ((abs(pos_x - new_pos_x) == 0) && (abs(pos_y - new_pos_y) == 2)) //2 squares up
         move_num = 1;
@@ -823,7 +836,6 @@ void move_bishop(piece *piece1, char pos_x, char pos_y, char new_pos_x, char new
 		capture_piece(pos_x, pos_y, piece1->xpos, piece1->ypos);
 	}	
 }
-
 void move_piece(){
 
 	char piece_name = board[init_y][init_x]->name;
@@ -833,7 +845,7 @@ void move_piece(){
     else if (piece_name == BISHOP)
 		move_bishop(board[init_y][init_x], init_x, init_y, end_x, end_y);
 	else if (piece_name == KNIGHT)
-		move_knight(init_x, init_y, end_x, end_y);
+		move_knight(board[init_y][init_x], init_x, init_y, end_x, end_y);
 	else if (piece_name == ROOK)
 		move_rook(board[init_y][init_x], init_x, init_y, end_x, end_y);
 	else if (piece_name == QUEEN)
@@ -841,7 +853,6 @@ void move_piece(){
 	else if (piece_name == KING)
 		move_king(board[init_y][init_x], init_x, init_y, end_x, end_y);
 }
-
 // take keyboard commands. for testing purpose
 static PT_THREAD (protothread_keyboard(struct pt *pt)){
     PT_BEGIN(pt);
@@ -860,27 +871,28 @@ static PT_THREAD (protothread_keyboard(struct pt *pt)){
         // now parse the string
         sscanf(PT_term_buffer, "%s", cmd);
         if(cmd[0] == 'z') 
-            //printf("%i\t", init_x);
             printf("%i%1i\t %i%1i\n\r", init_x, init_y, end_x, end_y);      
         else if(cmd[0] >= 97 && cmd[0] <= 104 && cmd[1] >= 48 && cmd[1] <= 56)   {
-            if(state == IDLE)   {
+            if(board[cmd[0]-97][cmd[1]-49] == NULL);
+            else if(state == IDLE)   {
                 init_x = cmd[0] - 97;
                 init_y = cmd[1] - 49;
                 state++;
+                signal = 1;
             }
             else if (state == CALC) {
                 end_x = cmd[0] - 97;
                 end_y = cmd[1] - 49;
                 state = 0;
+                signal = 1;
             }
         }
     } // END WHILE(1)
     PT_END(pt);
 }
-
 // === TFT Print Thread =================================================
 // print the output of the chessboard
-static PT_THREAD (protothread_timer(struct pt *pt)){
+static PT_THREAD (protothread_print(struct pt *pt)){
     PT_BEGIN(pt);
     int i, j;
     tft_setCursor(0, 0);
@@ -910,7 +922,7 @@ static PT_THREAD (protothread_timer(struct pt *pt)){
             PT_YIELD_TIME_msec(2000) ;
             sys_time_seconds++ ;
             // draw sys_time
-            tft_fillRect(0, 10, 240, 20, ILI9340_BLACK);// x,y,w,h,color
+            tft_fillRect(0, 10, 50, 20, ILI9340_BLACK);// x,y,w,h,color
             tft_fillRect(50, 80, 160, 160, ILI9340_BLACK);// x,y,w,h,color
             tft_setCursor(0, 10);
             tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
@@ -953,14 +965,34 @@ static PT_THREAD (protothread_move(struct pt *pt)){
     PT_BEGIN(pt);
         while(1) {       
           // if button or command is entered for both start and end, make the move
-            if(state == IDLE);
+            PT_YIELD_UNTIL(pt, signal);
+            if(state == RESET)  {
+                tft_fillRect(50, 10, 240, 20, ILI9340_BLACK);// x,y,w,h,color
+                tft_setCursor(50, 10);
+                tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
+                tft_writeString("IDLE");
+                state++;
+            }
+            else if(state == IDLE)   {
+                tft_fillRect(50, 10, 240, 20, ILI9340_BLACK);// x,y,w,h,color
+                tft_setCursor(50, 10);
+                tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
+                tft_writeString("IDLE");
+                tft_fillRect(0, 30, 240, 20, ILI9340_BLACK);// x,y,w,h,color
                 //calc_piece_moves();
-            else if(state == CALC);
+            }
+            else if(state == CALC)  {
+                tft_fillRect(50, 10, 240, 20, ILI9340_BLACK);// x,y,w,h,color
+                tft_setCursor(50, 10);
+                tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
+                tft_writeString("CALC");
+                calc_piece_moves();
                 //move_piece();
+            }
+            signal = 0;
         } // END WHILE(1)
 	PT_END(pt);
-} // animation thread
-
+}
 // === Main  ======================================================
 void main(void) {
   // === config threads ==========
@@ -971,9 +1003,8 @@ void main(void) {
   INTEnableSystemMultiVectoredInt();
 
   // init the threads
-  PT_INIT(&pt_timer);
+  PT_INIT(&pt_print);
   PT_INIT(&pt_key);
-  //PT_INIT(&pt_board);
   PT_INIT(&pt_move);
 
   // init the display
@@ -986,11 +1017,9 @@ void main(void) {
   // round-robin scheduler for threads
   while (1){
       PT_SCHEDULE(protothread_keyboard(&pt_key));
-      PT_SCHEDULE(protothread_timer(&pt_timer));
-      //PT_SCHEDULE(protothread_board(&pt_board));
+      PT_SCHEDULE(protothread_print(&pt_print));
       PT_SCHEDULE(protothread_move(&pt_move));
   }
  } // main
 
 // === end  ======================================================
-
