@@ -26,9 +26,7 @@ char init_x, init_y, end_x, end_y; //positions that will be selected by user via
 char current_player = 1;
 
 typedef struct piece{
-	
     char name;      //what piece it is
-    char start;     //0 means moved this game
     char alive;     //alive = 1, it's alive. 0 = dead
     char side;      //side = 1, it's white. -1 = black
     char xpos;      //ranges between a-h (a = 0, h = 7)
@@ -63,7 +61,6 @@ void initialize_board(){
 			pawn = (piece*)malloc(sizeof(piece));
 			board[j][i] = pawn;
 			pawn->name = PAWN;
-			pawn->start = 1;
 			pawn->alive = 1;
 			pawn->side = side_loop;
 			pawn->xpos = i;
@@ -79,7 +76,6 @@ void initialize_board(){
 			rook = (piece*)malloc(sizeof(piece));
 			board[j][i] = rook;
 			rook->name = ROOK;
-			rook->start = 1;
 			rook->alive = 1;
 			rook->side = side_loop;
 			rook->xpos = i;
@@ -95,7 +91,6 @@ void initialize_board(){
 			knight = (piece*)malloc(sizeof(piece));
 			board[j][i] = knight;
 			knight->name = KNIGHT;
-			knight->start = 1;
 			knight->alive = 1;
 			knight->side = side_loop;
 			knight->xpos = i;
@@ -112,7 +107,6 @@ void initialize_board(){
 			bishop = (piece*)malloc(sizeof(piece));
 			board[j][i] = bishop;
 			bishop->name = BISHOP;
-			bishop->start = 1;
 			bishop->alive = 1;
 			bishop->side = side_loop;
 			bishop->xpos = i;
@@ -127,7 +121,6 @@ void initialize_board(){
 		queen = (piece*)malloc(sizeof(piece));
 		board[j][3] = queen;
 		queen->name = QUEEN;
-		queen->start = 1;
 		queen->alive = 1;
 		queen->side = side_loop;
 		queen->ypos = j;
@@ -142,7 +135,6 @@ void initialize_board(){
 		king = (piece*)malloc(sizeof(piece));
 		board[j][4] = king;
 		king->name = KING;
-		king->start = 1;
 		king->alive = 1;
 		king->side = side_loop;
 		king->xpos = 4;
@@ -155,9 +147,9 @@ void calc_pawn_moves(piece *pawn){
 	char pawn_y_sidef = pawn->ypos + (pawn->side * 1);
 	char pawn_x_sider = pawn->xpos + 1;
 	char pawn_x_sidel = pawn->xpos - 1;
-		
+	avail[pawn->ypos][pawn->xpos] = 1;	
 	//two squares up
-	if (((pawn->start) && (board[pawn_y_sideff][pawn->xpos] == 0))) //no piece should be there
+	if ( ((pawn->ypos == 1 && pawn->side == 1) ||(pawn->ypos == 6 && pawn->side == -1))  && (board[pawn_y_sideff][pawn->xpos] == 0))//no piece should be there
 		avail[pawn_y_sideff][pawn->xpos] = 1;
 	
 	//diag right
@@ -169,92 +161,81 @@ void calc_pawn_moves(piece *pawn){
 		avail[pawn_y_sidef][pawn_x_sidel] = 1;
 	
 	//one square up
-	if (board[pawn_y_sidef][pawn_x_sidel] == 0) //no piece should be in front of pawn
-		avail[pawn_y_sidef][pawn_x_sidel] = 1;	
+	if (board[pawn_y_sidef][pawn->xpos] == 0) //no piece should be in front of pawn
+		avail[pawn_y_sidef][pawn->xpos] = 1;	
 }
-
 void calc_bish_moves(piece *bishop){
 	
 	char bish_x = bishop->xpos;
-	char bish_y = bishop->ypos;
-	
-  char i, j;
+	char bish_y = bishop->ypos;	
+    char i;
     
+    avail[bish_y][bish_x] = 1;
 	for (i = 1; bish_x+i<8; i++){ //go diag up right
 		if (((bish_y-i)>-1) && ((board[bish_y-i][bish_x+i] == 0) || (board[bish_y-i][bish_x+i]->side != bishop->side))) //make sure no piece there or it's enemy piece
 			avail[bish_y-i][bish_x+i] = 1;
-		else //this move is invalid. so are rest in diagonal
-			break;
+		else break;//this move is invalid. so are rest in line
 	}
 	
 	for (i = 1; bish_x+i<8; i++){ //go diag down right
 		if (((bish_y+i)<8) && ((board[bish_y+i][bish_x+i] == 0) || (board[bish_y+i][bish_x+i]->side != bishop->side))) //make sure no piece there or it's enemy piece
 			avail[bish_y+i][bish_x+i] = 1;
-		else //this move is invalid. so are rest in diagonal
-			break;
+		else break;//this move is invalid. so are rest in line
 	}
 	
 	for (i = 1; bish_x-i>-1; i++){ //go diag down left
 		if (((bish_y+i)<8) && ((board[bish_y+i][bish_x-i] == 0) || (board[bish_y+i][bish_x-i]->side != bishop->side))) //make sure no piece there or it's enemy piece
 			avail[bish_y+i][bish_x-i] = 1;
-		else //this move is invalid. so are rest in diagonal
-			break;
+		else break;//this move is invalid. so are rest in line
 	}
 	
 	for (i = 1; bish_x-i>-1; i++){ //go diag up left
 		if (((bish_y-i)>-1) && ((board[bish_y-i][bish_x-i] == 0) || (board[bish_y-i][bish_x-i]->side != bishop->side))) //make sure no piece there or it's enemy piece
 			avail[bish_y-i][bish_x-i] = 1;
-		else //this move is invalid. so are rest in diagonal
-			break;
+		else break;//this move is invalid. so are rest in line
 	}
 }
 void calc_rook_moves(piece *rook){
 	
 	char rook_x = rook->xpos;
 	char rook_y = rook->ypos;
-    
-  char i, j;
+    char i;  
 	
+    avail[rook_y][rook_x] = 1;
 	for (i = 1; rook_y-i>-1; i++){ //go up
 		if ((board[rook_y-i][rook_x] == 0) || (board[rook_y-i][rook_x]->side != rook->side)) //make sure no piece there or it's enemy piece
 			avail[rook_y-i][rook_x] = 1;
-		else //this move is invalid. so are rest in line
-			break;
+		else break;//this move is invalid. so are rest in line
 	}
 	
 	for (i = 1; rook_x+i<8; i++){ //go right
 		if ((board[rook_y][rook_x+i] == 0) || (board[rook_y][rook_x+i]->side != rook->side)) //make sure no piece there or it's enemy piece
 			avail[rook_y][rook_x+i] = 1;
-		else //this move is invalid. so are rest in line
-			break;
+		else break;//this move is invalid. so are rest in line
 	}
 	
 	for (i = 1; rook_y+i<8; i++){ //go down
 		if ((board[rook_y+i][rook_x] == 0) || (board[rook_y+i][rook_x]->side != rook->side)) //make sure no piece there or it's enemy piece
-			avail[14+i-1] = 1;
-		else{ //this move is invalid. so are rest in line
-			break;
-		}
+			avail[rook_y+i][rook_x] = 1;
+		else break;//this move is invalid. so are rest in line
 	}
 	
 	for (i = 1; rook_x-i>-1; i++){ //go left
 		if ((board[rook_y][rook_x-i] == 0) || (board[rook_y][rook_x-i]->side != rook->side)) //make sure no piece there or it's enemy piece
 			avail[rook_y][rook_x-i] = 1;
-		else //this move is invalid. so are rest in line
-			break;
+		else break;//this move is invalid. so are rest in line
 	}
 }
 void calc_queen_moves(piece *queen){
-	
 	calc_rook_moves(queen);
 	calc_bish_moves(queen);
 }
-
 void calc_king_moves(piece *king){
 	
 	char king_x = king->xpos;
 	char king_y = king->ypos;
     
+    avail[king_y][king_x] = 1;
 	//up
 	if (((king_y-1) > -1) && ((board[king_y-1][king_x] == 0) || (board[king_y-1][king_x]->side != king->side))) //make sure no piece there or it's enemy piece
 		avail[king_y-1][king_x] = 1;
@@ -287,12 +268,12 @@ void calc_king_moves(piece *king){
 	if (((king_y-1)>-1) && ((king_x-1)>-1) && ((board[king_y-1][king_x-1] == 0) || (board[king_y-1][king_x-1]->side != king->side))) //make sure no piece there or it's enemy piece
 		avail[king_y-1][king_x-1] = 1;
 }
-
 void calc_knight_moves(piece *knight){
 	
 	char knight_x = knight->xpos;
 	char knight_y = knight->ypos;
 	
+    avail[knight_y][knight_x] = 1;
 	//big up right
 	if (((knight_y-2) > -1) && ((knight_x+1)<8) && ((board[knight_y-2][knight_x+1] == 0) || (board[knight_y-2][knight_x+1]->side != knight->side))) //make sure no piece there or it's enemy piece
 		avail[knight_y-2][knight_x+1] = 1;
@@ -301,13 +282,21 @@ void calc_knight_moves(piece *knight){
 	if (((knight_y-1) > -1) && ((knight_x+2)<8) && ((board[knight_y-1][knight_x+2] == 0) || (board[knight_y-1][knight_x+2]->side != knight->side))) //make sure no piece there or it's enemy piece
 		avail[knight_y-1][knight_x+2] = 1;
 	
+    //big up left
+	if (((knight_y-2) > -1) && ((knight_x-1)>-1) && ((board[knight_y-2][knight_x-1] == 0) || (board[knight_y-2][knight_x-1]->side != knight->side))) //make sure no piece there or it's enemy piece
+		avail[knight_y-2][knight_x-1] = 1;	
+    
+	//small up left
+	if (((knight_y-1) > -1) && ((knight_x-2)>-1) && ((board[knight_y-1][knight_x-2] == 0) || (board[knight_y-1][knight_x-2]->side != knight->side))) //make sure no piece there or it's enemy piece
+		avail[knight_y-1][knight_x-2] = 1;
+    
+    //big down right
+	if (((knight_y+2) < 8) && ((knight_x+1)<8) && ((board[knight_y+2][knight_x+1] == 0) || (board[knight_y+2][knight_x+1]->side != knight->side))) //make sure no piece there or it's enemy piece
+		avail[knight_y+2][knight_x+1] = 1;
+    
 	//small down right
 	if (((knight_y+1) < 8) && ((knight_x+2)<8) && ((board[knight_y+1][knight_x+2] == 0) || (board[knight_y+1][knight_x+2]->side != knight->side))) //make sure no piece there or it's enemy piece
 		avail[knight_y+1][knight_x+2] = 1;
-		
-	//big down right
-	if (((knight_y+2) < 8) && ((knight_x+1)<8) && ((board[knight_y+2][knight_x+1] == 0) || (board[knight_y+2][knight_x+1]->side != knight->side))) //make sure no piece there or it's enemy piece
-		avail[knight_y+2][knight_x+1] = 1;
 	
 	//big down left
 	if (((knight_y+2) < 8) && ((knight_x-1)>-1) && ((board[knight_y+2][knight_x-1] == 0) || (board[knight_y+2][knight_x-1]->side != knight->side))) //make sure no piece there or it's enemy piece
@@ -315,29 +304,18 @@ void calc_knight_moves(piece *knight){
 		
 	//small down left
 	if (((knight_y+1) < 8) && ((knight_x-2)>-1) && ((board[knight_y+1][knight_x-2] == 0) || (board[knight_y+1][knight_x-2]->side != knight->side))) //make sure no piece there or it's enemy piece
-		avail[knight_y+2][knight_x-2] = 1;
-		
-	//small up left
-	if (((knight_y-1) > -1) && ((knight_x-2)>-1) && ((board[knight_y-1][knight_x-2] == 0) || (board[knight_y-1][knight_x-2]->side != knight->side))) //make sure no piece there or it's enemy piece
-		avail[knight_y-1][knight_x-2] = 1;
-		
-	//big up left
-	if (((knight_y-2) > -1) && ((knight_x-1)>-1) && ((board[knight_y-2][knight_x-1] == 0) || (board[knight_y-2][knight_x-1]->side != knight->side))) //make sure no piece there or it's enemy piece
-		avail[knight_y-2][knight_x-1] = 1;
+		avail[knight_y+1][knight_x-2] = 1;
+			
+	
 }
-
 void reset_array(){
-	
-	char i, j;
-	
+	char i, j;	
 	for (i = 0; i < 8; i++)
 		for (j = 0; j < 8; j++)
 			avail[i][j] = 0;
 }
-
 void calc_piece_moves(){
     char piece_name = board[init_y][init_x]->name;
-    int i;
 	reset_array(); //reset avail array for each piece
 	
     tft_fillRect(0, 30, 240, 20, ILI9340_BLACK);// x,y,w,h,color
@@ -369,7 +347,7 @@ void calc_piece_moves(){
 
     if (piece_name == PAWN)
         calc_pawn_moves(board[init_y][init_x]);
-    /*else if (piece_name == BISHOP)
+    else if (piece_name == BISHOP)
         calc_bish_moves(board[init_y][init_x]);
     else if (piece_name == KNIGHT)
         calc_knight_moves(board[init_y][init_x]);
@@ -379,7 +357,6 @@ void calc_piece_moves(){
         calc_queen_moves(board[init_y][init_x]);
     else if (piece_name == KING)
         calc_king_moves(board[init_y][init_x]);	
-    */ 
 }
 void capture_piece(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 
@@ -393,18 +370,17 @@ void capture_piece(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	board[new_pos_y][new_pos_x] = board[pos_y][pos_x];
 	board[pos_y][pos_x] = 0;
 }
-
 void move_piece(){
 	
-	piece *piece1 = board[init_x][init_y];
-	
-	if (avail[end_y][end_x])){
-		piece1->ypos = end_y;
-		piece1->xpos = end_x;
-		capture_piece(init_x, init_y, piece1->xpos, piece1->ypos);
+	piece *piece1 = board[init_y][init_x];
+	if (avail[end_y][end_x]){
+        piece1->xpos = end_x;
+        piece1->ypos = end_y;
+        board[end_y][end_x] = piece1;
+        board[init_y][init_x] = NULL;
+		//capture_piece(init_x, init_y, piece1->xpos, piece1->ypos);
 	}
 }
-
 // take keyboard commands. for testing purpose
 static PT_THREAD (protothread_keyboard(struct pt *pt)){
     PT_BEGIN(pt);
@@ -425,13 +401,18 @@ static PT_THREAD (protothread_keyboard(struct pt *pt)){
         if(cmd[0] == 'z') 
             printf("%i%1i\t %i%1i\n\r", init_x, init_y, end_x, end_y);      
         else if(cmd[0] >= 97 && cmd[0] <= 104 && cmd[1] >= 48 && cmd[1] <= 56)   {
-            if(board[cmd[0]-97][cmd[1]-49] == NULL);
+            if(board[cmd[1]-49][cmd[0]-97] == NULL && state == IDLE);
             else if(state == IDLE)   {
                 init_x = cmd[0] - 97;
                 init_y = cmd[1] - 49;
                 state++;
                 signal = 1;
             }
+            else if (init_x == cmd[0]-97 && init_y == cmd[1] -49)   {
+                state = -1;
+                signal = 1;
+            }
+            else if (avail[cmd[1]-49][cmd[0]-97] == NULL && state == CALC);
             else if (state == CALC) {
                 end_x = cmd[0] - 97;
                 end_y = cmd[1] - 49;
@@ -443,7 +424,6 @@ static PT_THREAD (protothread_keyboard(struct pt *pt)){
     PT_END(pt);
 }
 // === TFT Print Thread =================================================
-// print the output of the chessboard
 static PT_THREAD (protothread_print(struct pt *pt)){
     PT_BEGIN(pt);
     int i, j;
@@ -469,47 +449,51 @@ static PT_THREAD (protothread_print(struct pt *pt)){
         tft_writeString(buffer);
     }
         //updates the chess board each iteration
-        while(1) {
-            // yield time 1 second
-            PT_YIELD_TIME_msec(2000) ;
-            sys_time_seconds++ ;
-            // draw sys_time
-            tft_fillRect(0, 10, 50, 20, ILI9340_BLACK);// x,y,w,h,color
-            tft_fillRect(50, 80, 160, 160, ILI9340_BLACK);// x,y,w,h,color
-            tft_setCursor(0, 10);
-            tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
-            sprintf(buffer,"%d", sys_time_seconds);
-            tft_writeString(buffer);
-            for(j = 0; j < 8; j++ ) {
-                for(i = 0; i < 8; i++)  {
-                    tft_setCursor(50+20*j, 220-20*i);
-                    tft_setTextSize(2);                  
-                    if(board[i][j] == NULL) {                       
-                        tft_setTextColor(ILI9340_BLUE); 
-                        tft_writeString("-");
-                    }
-                    else    {
-                        if(board[i][j]->side == 1)
-                            tft_setTextColor(ILI9340_WHITE);
-                        else
-                            tft_setTextColor(ILI9340_RED);
-                        if (board[i][j]->name == PAWN) 
-                            tft_writeString("P");
-                        else if (board[i][j]->name == ROOK) 
-                            tft_writeString("R");
-                        else if (board[i][j]->name == KNIGHT) 
-                            tft_writeString("H");
-                        else if (board[i][j]->name == BISHOP) 
-                            tft_writeString("B");
-                        else if (board[i][j]->name == QUEEN) 
-                            tft_writeString("Q");
-                        else if (board[i][j]->name == KING) 
-                            tft_writeString("K");
-                    }
+    while(1) {
+        // yield time 1 second
+        PT_YIELD_TIME_msec(2000) ;
+        sys_time_seconds++ ;
+        // draw sys_time
+        tft_fillRect(0, 10, 50, 20, ILI9340_BLACK);// x,y,w,h,color
+        tft_fillRect(50, 80, 160, 160, ILI9340_BLACK);// x,y,w,h,color
+        tft_setCursor(0, 10);
+        tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
+        sprintf(buffer,"%d", sys_time_seconds);
+        tft_writeString(buffer);
+        for(j = 0; j < 8; j++ ) {
+            for(i = 0; i < 8; i++)  {
+                tft_setCursor(50+20*j, 220-20*i);
+                tft_setTextSize(2);                  
+                if(board[i][j] == NULL) {                       
+                    tft_setTextColor(ILI9340_BLUE); 
+                    tft_writeString("-");
+                }
+                else    {
+                    if(board[i][j]->side == 1)
+                        tft_setTextColor(ILI9340_WHITE);
+                    else
+                        tft_setTextColor(ILI9340_RED);
+                    if (board[i][j]->name == PAWN) 
+                        tft_writeString("P");
+                    else if (board[i][j]->name == ROOK) 
+                        tft_writeString("R");
+                    else if (board[i][j]->name == KNIGHT) 
+                        tft_writeString("H");
+                    else if (board[i][j]->name == BISHOP) 
+                        tft_writeString("B");
+                    else if (board[i][j]->name == QUEEN) 
+                        tft_writeString("Q");
+                    else if (board[i][j]->name == KING) 
+                        tft_writeString("K");
+                }
+                if(state == CALC && avail[i][j] == 1)   {    
+                    tft_setCursor(53+20*j, 220-20*i);                                       
+                    tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(1);
+                    tft_writeString("*");
                 }
             }
-            // NEVER exit while
-        } // END WHILE(1)
+        }
+    } // END WHILE(1)
   PT_END(pt);
 } // timer thread
 // === Calculate Move and Make Move Thread =============================================
@@ -519,27 +503,27 @@ static PT_THREAD (protothread_move(struct pt *pt)){
           // if button or command is entered for both start and end, make the move
             PT_YIELD_UNTIL(pt, signal);
             if(state == RESET)  {
-                tft_fillRect(50, 10, 240, 20, ILI9340_BLACK);// x,y,w,h,color
+                tft_fillRect(50, 10, 50, 20, ILI9340_BLACK);// x,y,w,h,color
                 tft_setCursor(50, 10);
                 tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
                 tft_writeString("IDLE");
+                tft_fillRect(0, 30, 70, 20, ILI9340_BLACK);// x,y,w,h,color
                 state++;
             }
             else if(state == IDLE)   {
-                tft_fillRect(50, 10, 240, 20, ILI9340_BLACK);// x,y,w,h,color
+                tft_fillRect(50, 10, 50, 20, ILI9340_BLACK);// x,y,w,h,color
                 tft_setCursor(50, 10);
                 tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
                 tft_writeString("IDLE");
-                tft_fillRect(0, 30, 240, 20, ILI9340_BLACK);// x,y,w,h,color
-                //calc_piece_moves();
+                tft_fillRect(0, 30, 70, 20, ILI9340_BLACK);// x,y,w,h,color
+                move_piece();
             }
             else if(state == CALC)  {
-                tft_fillRect(50, 10, 240, 20, ILI9340_BLACK);// x,y,w,h,color
+                tft_fillRect(50, 10, 50, 20, ILI9340_BLACK);// x,y,w,h,color
                 tft_setCursor(50, 10);
                 tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
                 tft_writeString("CALC");
                 calc_piece_moves();
-                //move_piece();
             }
             signal = 0;
         } // END WHILE(1)
@@ -573,5 +557,4 @@ void main(void) {
       PT_SCHEDULE(protothread_move(&pt_move));
   }
  } // main
-
 // === end  ======================================================
