@@ -179,6 +179,7 @@ void calc_bish_moves(piece *bishop){
 				avail[bish_y-i][bish_x+i] = 1;
 				break;
 			}
+			else break;
 		}
 		else break;//this move is invalid. so are rest in line
 	}
@@ -187,9 +188,11 @@ void calc_bish_moves(piece *bishop){
 		if ((bish_y+i)<8){
 			if (board[bish_y+i][bish_x+i] == 0)
 				avail[bish_y+i][bish_x+i] = 1;
-			else if (board[bish_y+i][bish_x+i]->side != bishop->side)
+			else if (board[bish_y+i][bish_x+i]->side != bishop->side){
 				avail[bish_y+i][bish_x+i] = 1;
 				break;
+			}
+			else break;
 		}
 		else break;//this move is invalid. so are rest in line
 	}
@@ -202,6 +205,7 @@ void calc_bish_moves(piece *bishop){
 				avail[bish_y+i][bish_x-i] = 1;
 				break;
 			}
+			else break;
 		}
 		else break;//this move is invalid. so are rest in line
 	}
@@ -214,6 +218,7 @@ void calc_bish_moves(piece *bishop){
 				avail[bish_y-i][bish_x-i] = 1;
 				break;
 			}
+			else break;
 		}			
 		else break;//this move is invalid. so are rest in line
 	}
