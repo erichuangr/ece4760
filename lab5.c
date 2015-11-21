@@ -172,26 +172,49 @@ void calc_bish_moves(piece *bishop){
     
     avail[bish_y][bish_x] = 1;
 	for (i = 1; bish_x+i<8; i++){ //go diag up right
-		if (((bish_y-i)>-1) && ((board[bish_y-i][bish_x+i] == 0) || (board[bish_y-i][bish_x+i]->side != bishop->side))) //make sure no piece there or it's enemy piece
-			avail[bish_y-i][bish_x+i] = 1;
+		if (((bish_y-i)>-1){
+			if (board[bish_y-i][bish_x+i] == 0)
+				avail[bish_y-i][bish_x+i] = 1;
+			else if (board[bish_y-i][bish_x+i]->side != bishop->side){
+				avail[bish_y-i][bish_x+i] = 1;
+				break;
+			}
+		}
 		else break;//this move is invalid. so are rest in line
 	}
 	
 	for (i = 1; bish_x+i<8; i++){ //go diag down right
-		if (((bish_y+i)<8) && ((board[bish_y+i][bish_x+i] == 0) || (board[bish_y+i][bish_x+i]->side != bishop->side))) //make sure no piece there or it's enemy piece
-			avail[bish_y+i][bish_x+i] = 1;
+		if (((bish_y+i)<8){
+			if (board[bish_y+i][bish_x+i] == 0)
+				avail[bish_y+i][bish_x+i] = 1;
+			else if (board[bish_y+i][bish_x+i]->side != bishop->side)
+				avail[bish_y+i][bish_x+i] = 1;
+				break;
+		}
 		else break;//this move is invalid. so are rest in line
 	}
 	
 	for (i = 1; bish_x-i>-1; i++){ //go diag down left
-		if (((bish_y+i)<8) && ((board[bish_y+i][bish_x-i] == 0) || (board[bish_y+i][bish_x-i]->side != bishop->side))) //make sure no piece there or it's enemy piece
-			avail[bish_y+i][bish_x-i] = 1;
+		if ((bish_y+i)<8){
+			if (board[bish_y+i][bish_x-i] == 0)
+				avail[bish_y+i][bish_x-i] = 1;
+			else if (board[bish_y+i][bish_x-i]->side != bishop->side)){
+				avail[bish_y+i][bish_x-i] = 1;
+				break;
+			}
+		}
 		else break;//this move is invalid. so are rest in line
 	}
 	
 	for (i = 1; bish_x-i>-1; i++){ //go diag up left
-		if (((bish_y-i)>-1) && ((board[bish_y-i][bish_x-i] == 0) || (board[bish_y-i][bish_x-i]->side != bishop->side))) //make sure no piece there or it's enemy piece
-			avail[bish_y-i][bish_x-i] = 1;
+		if ((bish_y-i)>-1){
+			if (board[bish_y-i][bish_x-i] == 0)
+				avail[bish_y-i][bish_x-i] = 1;
+			else if (board[bish_y-i][bish_x-i]->side != bishop->side){
+				avail[bish_y-i][bish_x-i] = 1;
+				break;
+			}
+		}			
 		else break;//this move is invalid. so are rest in line
 	}
 }
@@ -203,26 +226,42 @@ void calc_rook_moves(piece *rook){
 	
     avail[rook_y][rook_x] = 1;
 	for (i = 1; rook_y-i>-1; i++){ //go up
-		if ((board[rook_y-i][rook_x] == 0) || (board[rook_y-i][rook_x]->side != rook->side)) //make sure no piece there or it's enemy piece
+		if (board[rook_y-i][rook_x] == 0) //make sure no piece there or it's enemy piece
 			avail[rook_y-i][rook_x] = 1;
+		else if (board[rook_y-i][rook_x]->side != rook->side){
+			avail[rook_y-i][rook_x] = 1;
+			break;
+		}
 		else break;//this move is invalid. so are rest in line
 	}
 	
 	for (i = 1; rook_x+i<8; i++){ //go right
-		if ((board[rook_y][rook_x+i] == 0) || (board[rook_y][rook_x+i]->side != rook->side)) //make sure no piece there or it's enemy piece
+		if (board[rook_y][rook_x+i] == 0)  //make sure no piece there or it's enemy piece
 			avail[rook_y][rook_x+i] = 1;
+		else if (board[rook_y][rook_x+i]->side != rook->side){
+			avail[rook_y][rook_x+i] = 1;
+			break;
+		}
 		else break;//this move is invalid. so are rest in line
 	}
 	
 	for (i = 1; rook_y+i<8; i++){ //go down
-		if ((board[rook_y+i][rook_x] == 0) || (board[rook_y+i][rook_x]->side != rook->side)) //make sure no piece there or it's enemy piece
+		if ((board[rook_y+i][rook_x] == 0) //make sure no piece there or it's enemy piece
 			avail[rook_y+i][rook_x] = 1;
+		else if (board[rook_y+i][rook_x]->side != rook->side){
+			avail[rook_y+i][rook_x] = 1;
+			break;
+		}
 		else break;//this move is invalid. so are rest in line
 	}
 	
 	for (i = 1; rook_x-i>-1; i++){ //go left
-		if ((board[rook_y][rook_x-i] == 0) || (board[rook_y][rook_x-i]->side != rook->side)) //make sure no piece there or it's enemy piece
+		if ((board[rook_y][rook_x-i] == 0) //make sure no piece there or it's enemy piece
 			avail[rook_y][rook_x-i] = 1;
+		else if (board[rook_y][rook_x-i]->side != rook->side){
+			avail[rook_y][rook_x-i] = 1;
+			break;
+		}
 		else break;//this move is invalid. so are rest in line
 	}
 }
