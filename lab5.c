@@ -27,20 +27,109 @@ char current_player = 1;
 
 typedef struct piece{
     char name;      //what piece it is
-    char alive;     //alive = 1, it's alive. 0 = dead
     char side;      //side = 1, it's white. -1 = black
     char xpos;      //ranges between a-h (a = 0, h = 7)
     char ypos;      //ranges between 1 and 8 (1 = 0, 8 = 7) 
-    char avail[56]; //avail ranges. pawn 0-3, rook 0-27, queen, 0-56, bish 0-27, king and knight 0-7
 }piece;
 
 // our 8x8 board of pieces
 piece *board[8][8] = {0};
-piece *captured[29] = {0}; //captured elements
-char avail[8][8] = {0};
-char captured_index = 0;
+piece *board1[8][8] = {0};
+piece *board2[8][8] = {0};
+piece *board3[8][8] = {0};
+piece *board4[8][8] = {0};
+piece *board5[8][8] = {0};
+piece *board6[8][8] = {0};
+piece *board7[8][8] = {0};
+piece *board8[8][8] = {0};
+piece *board9[8][8] = {0};
+piece *board10[8][8] = {0};
+char prev_board_counter = 0;
 
-piece *selected;
+char avail[8][8] = {0};
+
+void copy_two_boards(piece *board_src[8], piece *board_dest[8]){
+	char i, j;
+	for (j=0; j<8; j++)
+		for (i=0; i<8; i++)
+			board_dest[j][i] = board_src[j][i];
+}
+
+void copy_prev_board(){
+	
+	prev_board_counter++;
+	piece (*board_src)[8];
+	piece (*board_dest)[8];
+	
+	board_src = board;
+	
+	if (prev_board_counter == 1)
+		board_dest = board1;
+	else if (prev_board_counter == 2)
+		board_dest = board2;
+	else if (prev_board_counter == 3)
+		board_dest = board3;
+	else if (prev_board_counter == 4)
+		board_dest = board4;
+	else if (prev_board_counter == 5)
+		board_dest = board5;
+	else if (prev_board_counter == 6)
+		board_dest = board6;
+	else if (prev_board_counter == 7)
+		board_dest = board7;
+	else if (prev_board_counter == 8)
+		board_dest = board8;
+	else if (prev_board_counter == 9)
+		board_dest = board9;
+	else if (prev_board_counter == 10)
+		board_dest = board10;
+	else if (prev_board_counter == 11){ //reset counter back to 1
+		prev_board_counter = 1;
+		board_dest = board1;
+	}
+		
+	copy_two_boards(board_src, board_dest);
+}
+
+void restore_prev_board(){
+	
+	if (prev_board_counter != 0){ //make sure we actually have a board to restore from
+		
+		piece (*board_src)[8];
+		piece (*board_dest)[8];
+	
+		board_dest = board;
+		
+		if (prev_board_counter == 1)
+			board_src = board1;
+		else if (prev_board_counter == 2)
+			board_src = board2;
+		else if (prev_board_counter == 3)
+			board_src = board3;
+		else if (prev_board_counter == 4)
+			board_src = board4;
+		else if (prev_board_counter == 5)
+			board_src = board5;
+		else if (prev_board_counter == 6)
+			board_src = board6;
+		else if (prev_board_counter == 7)
+			board_src = board7;
+		else if (prev_board_counter == 8)
+			board_src = board8;
+		else if (prev_board_counter == 9)
+			board_src = board9;
+		else if (prev_board_counter == 10)
+			board_src = board10;
+		else if (prev_board_counter == 0){ //reset counter back to 1
+			prev_board_counter = 10;
+			board_src = board1;
+		}
+		
+		prev_board_counter--;
+		
+		copy_two_boards(board_src, board_dest);
+	}
+}
 
 void initialize_board(){
 		
@@ -61,7 +150,6 @@ void initialize_board(){
 			pawn = (piece*)malloc(sizeof(piece));
 			board[j][i] = pawn;
 			pawn->name = PAWN;
-			pawn->alive = 1;
 			pawn->side = side_loop;
 			pawn->xpos = i;
 			pawn->ypos = j;
@@ -76,7 +164,6 @@ void initialize_board(){
 			rook = (piece*)malloc(sizeof(piece));
 			board[j][i] = rook;
 			rook->name = ROOK;
-			rook->alive = 1;
 			rook->side = side_loop;
 			rook->xpos = i;
 			rook->ypos = j;
@@ -91,7 +178,6 @@ void initialize_board(){
 			knight = (piece*)malloc(sizeof(piece));
 			board[j][i] = knight;
 			knight->name = KNIGHT;
-			knight->alive = 1;
 			knight->side = side_loop;
 			knight->xpos = i;
 			knight->ypos = j;
@@ -107,7 +193,6 @@ void initialize_board(){
 			bishop = (piece*)malloc(sizeof(piece));
 			board[j][i] = bishop;
 			bishop->name = BISHOP;
-			bishop->alive = 1;
 			bishop->side = side_loop;
 			bishop->xpos = i;
 			bishop->ypos = j;
@@ -121,7 +206,6 @@ void initialize_board(){
 		queen = (piece*)malloc(sizeof(piece));
 		board[j][3] = queen;
 		queen->name = QUEEN;
-		queen->alive = 1;
 		queen->side = side_loop;
 		queen->ypos = j;
 		queen->xpos = 3;
@@ -135,7 +219,6 @@ void initialize_board(){
 		king = (piece*)malloc(sizeof(piece));
 		board[j][4] = king;
 		king->name = KING;
-		king->alive = 1;
 		king->side = side_loop;
 		king->xpos = 4;
 		king->ypos = j;
@@ -359,60 +442,76 @@ void reset_array(){
 			avail[i][j] = 0;
 }
 void calc_piece_moves(){
-    char piece_name = board[init_y][init_x]->name;
-	reset_array(); //reset avail array for each piece
-	
-    tft_fillRect(0, 30, 240, 20, ILI9340_BLACK);// x,y,w,h,color
-    tft_setCursor(0, 30);
-    tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
-	
-    switch(piece_name)  {
-        case 1:
-            tft_writeString("Pawn");
-            break;
-        case 2:
-            tft_writeString("Bishop");
-            break;
-        case 3:
-            tft_writeString("Knight");
-            break;
-        case 4:
-            tft_writeString("Rook");
-            break;
-        case 5:
-            tft_writeString("Queen");
-            break;
-        case 6:
-            tft_writeString("King");
-            break;
-        default:
-            tft_writeString("Invalid Piece");          
-    }
+	if (current_player == board[init_y][init_x]->side){ //make sure piece belongs to current player's side. otherwise, do nothing.
+		char piece_name = board[init_y][init_x]->name;
+		reset_array(); //reset avail array for each piece
+		
+		tft_fillRect(0, 30, 240, 20, ILI9340_BLACK);// x,y,w,h,color
+		tft_setCursor(0, 30);
+		tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
+		
+		switch(piece_name)  {
+			case 1:
+				tft_writeString("Pawn");
+				break;
+			case 2:
+				tft_writeString("Bishop");
+				break;
+			case 3:
+				tft_writeString("Knight");
+				break;
+			case 4:
+				tft_writeString("Rook");
+				break;
+			case 5:
+				tft_writeString("Queen");
+				break;
+			case 6:
+				tft_writeString("King");
+				break;
+			default:
+				tft_writeString("Invalid Piece");          
+		}
 
-    if (piece_name == PAWN)
-        calc_pawn_moves(board[init_y][init_x]);
-    else if (piece_name == BISHOP)
-        calc_bish_moves(board[init_y][init_x]);
-    else if (piece_name == KNIGHT)
-        calc_knight_moves(board[init_y][init_x]);
-    else if (piece_name == ROOK)
-        calc_rook_moves(board[init_y][init_x]);
-    else if (piece_name == QUEEN)
-        calc_queen_moves(board[init_y][init_x]);
-    else if (piece_name == KING)
-        calc_king_moves(board[init_y][init_x]);	
-}
-void capture_piece(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
-
-	if (board[new_pos_y][new_pos_x] != 0){ //store captured piece in captured array
-		captured[captured_index] = board[new_pos_y][new_pos_x];
-		captured_index++;
+		if (piece_name == PAWN)
+			calc_pawn_moves(board[init_y][init_x]);
+		else if (piece_name == BISHOP)
+			calc_bish_moves(board[init_y][init_x]);
+		else if (piece_name == KNIGHT)
+			calc_knight_moves(board[init_y][init_x]);
+		else if (piece_name == ROOK)
+			calc_rook_moves(board[init_y][init_x]);
+		else if (piece_name == QUEEN)
+			calc_queen_moves(board[init_y][init_x]);
+		else if (piece_name == KING)
+			calc_king_moves(board[init_y][init_x]);	
 	}
+}
+void move_piece_pawn_check(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	
 	//now move piece to new position and set prev to 0 since it's not there anymore
 	board[new_pos_y][new_pos_x] = 0;
 	board[new_pos_y][new_pos_x] = board[pos_y][pos_x];
 	board[pos_y][pos_x] = 0;
+	
+	if (board[new_pos_y][new_pos_x]->name == PAWN){ //see if new move made is pawn to end
+		if ((board[new_pos_y][new_pos_x]->side == 1) && (new_pos_y == 0)){ //see if white pawn hit end
+			piece *new_queen = (piece*)malloc(sizeof(piece));
+			new_queen->name = QUEEN;
+			new_queen->side = board[new_pos_y][new_pos_x]->side;
+			new_queen->ypos = new_pos_y;
+			new_queen->xpos = new_pos_x;
+			board[new_pos_y][new_pos_x] = new_queen;
+		}
+		else if ((board[new_pos_y][new_pos_x]->side == -1) && (new_pos_y == 7)){ //see if black pawn hit end
+			piece *new_queen = (piece*)malloc(sizeof(piece));
+			new_queen->name = QUEEN;
+			new_queen->side = board[new_pos_y][new_pos_x]->side;
+			new_queen->ypos = new_pos_y;
+			new_queen->xpos = new_pos_x;
+			board[new_pos_y][new_pos_x] = new_queen;
+		}
+	}
 }
 void move_piece(){
 	
@@ -420,9 +519,10 @@ void move_piece(){
 	if (avail[end_y][end_x]){
         piece1->xpos = end_x;
         piece1->ypos = end_y;
-        board[end_y][end_x] = piece1;
-        board[init_y][init_x] = NULL;
-		//capture_piece(init_x, init_y, piece1->xpos, piece1->ypos);
+		move_piece_pawn_check(init_x, init_y, piece1->xpos, piece1->ypos);
+		//move has been made. now other player's turn
+		current_player = current_player * -1;
+		copy_prev_board();
 	}
 }
 // take keyboard commands. for testing purpose
