@@ -30,6 +30,7 @@ typedef struct piece{
     char side;      //side = 1, it's white. -1 = black
     char xpos;      //ranges between a-h (a = 0, h = 7)
     char ypos;      //ranges between 1 and 8 (1 = 0, 8 = 7) 
+	char moved;     //1 = has moved this game
 }piece;
 
 // our 8x8 board of pieces
@@ -47,6 +48,107 @@ piece *board10[8][8] = {0};
 char prev_board_counter = 0;
 
 char avail[8][8] = {0};
+
+/*
+piece *attacker; //the piece that is causing the check
+piece *white_king;
+piece *black_king;
+
+piece *white_bish1;
+piece *white_bish2;
+piece *white_rook1;
+piece *white_rook2;
+piece*white_queen;
+
+piece *black_bish1;
+piece *black_bish2;
+piece *black_rook1;
+piece *black_rook2;
+piece *black_queen;
+*/
+/*
+ piece_pinned(piece *selected){
+	
+	char s_xpos = selected->xpos;
+	char s_ypos = selected->ypos;
+	
+	char k_xpos, k_ypos; //defending king x and y
+	char b1_xpos, b1_ypos, b2_xpos, b2_ypos; //both attack bishop's x and y
+	char r1_xpos, r1_ypos, r2_xpos, r2_ypos; //both attack rook's x and yield
+	char q_xpos, q_ypos; //attack queen's x and y
+	
+	
+	if (selected->side == -1){ //if black piece checking if pinned
+		k_xpos = black_king->xpos;
+		k_ypos = black_king->ypos;
+		
+		b1_xpos = white_bish1->xpos;
+		b1_ypos = white_bish1->ypos;
+		b2_xpos = white_bish2->xpos;
+		b2_ypos = white_bish2->ypos;
+		r1_xpos = white_rook1->xpos;
+		r1_ypos = white_rook1->ypos;
+		r2_xpos = white_rook2->xpos;
+		r2_ypos = white_rook2->ypos;
+		q_xpos = white_queen->xpos;
+		q_ypos = white_queen->ypos;
+		
+	}
+	else{
+		k_xpos = white_king->xpos;
+		k_ypos = white_king->ypos;
+		
+		b1_xpos = black_bish1->xpos;
+		b1_ypos = black_bish1->ypos;
+		b2_xpos = black_bish2->xpos;
+		b2_ypos = black_bish2->ypos;
+		r1_xpos = black_rook1->xpos;
+		r1_ypos = black_rook1->ypos;
+		r2_xpos = black_rook2->xpos;
+		r2_ypos = black_rook2->ypos;
+		q_xpos = black_queen->xpos;
+		q_ypos = black_queen->ypos;
+	}
+	
+	//check if under attack from diagonal
+	if (s_xpos -> )
+	
+}
+*/
+char can_king_castle(piece *king){
+	
+	char side_row;
+	if (king->side == 1) //white king
+		side_row = 7;
+	else
+		side_row = 0;
+	
+	if (king->moved == 0){
+		if (board[side_row][7]->moved == 0){ //if rook king side hasn't moved
+			if ((board[side_row][5] == 0) && (board[side_row][6] == 0)) //if no pieces b/w rook and king
+				return 1;
+		}
+	}
+	
+	return 0;
+}
+char can_queen_castle(piece *king){
+	
+	char side_row;
+	if (king->side == 1) //white king
+		side_row = 7;
+	else
+		side_row = 0;
+	
+	if (king->moved == 0){
+		if (board[side_row][0]->moved == 0){ //if rook king side hasn't moved
+			if ((board[side_row][1] == 0) && (board[side_row][2] == 0) && (board[side_row][3] == 3)) //if no pieces b/w rook and king
+				return 1;
+		}
+	}
+	
+	return 0;
+}
 
 void copy_two_boards(piece *board_src[8], piece *board_dest[8]){
 	char i, j;
@@ -167,6 +269,7 @@ void initialize_board(){
 			rook->side = side_loop;
 			rook->xpos = i;
 			rook->ypos = j;
+			rook->moved = 0;
 		}
 	}
 	
@@ -222,8 +325,24 @@ void initialize_board(){
 		king->side = side_loop;
 		king->xpos = 4;
 		king->ypos = j;
+		king->moved = 0;
 	}
 	
+	white_king = board[7][4];
+	black_king = board[0][4];
+	
+	white_queen = board[7][3];
+	black_queen = board[0][3];
+	
+	white_bish1 = board[7][2];
+	white_bish2 = board[7][5];
+	black_bish1 = board[0][2];
+	black_bish2 = board[0][5];
+	
+	white_rook1 = board[7][0];
+	white_rook2 = board[7][7];
+	black_rook1 = board[0][0];
+	black_rook2 = board[0][7];
 }
 void calc_pawn_moves(piece *pawn){	
 	char pawn_y_sideff = pawn->ypos + (pawn->side * 2);
@@ -394,6 +513,12 @@ void calc_king_moves(piece *king){
 	//up left
 	if (((king_y-1)>-1) && ((king_x-1)>-1) && ((board[king_y-1][king_x-1] == 0) || (board[king_y-1][king_x-1]->side != king->side))) //make sure no piece there or it's enemy piece
 		avail[king_y-1][king_x-1] = 1;
+		
+	if (can_king_castle(king)) //can we castle king side
+		avail[king_y][king_x+2];
+	
+	if (can_queen_castle(king)) //can we castle queen side
+		avail[king_y][king_x-2];
 }
 void calc_knight_moves(piece *knight){
 	
@@ -512,6 +637,23 @@ void move_piece_pawn_check(char pos_x, char pos_y, char new_pos_x, char new_pos_
 			board[new_pos_y][new_pos_x] = new_queen;
 		}
 	}
+	
+	if (board[new_pos_y][new_pos_x] == KING){ //see if we did a king castle move
+		if ((new_pos_y == pos_y) && (new_pos_x == (pos_x+2))){
+			board[new_pos_y][new_pos_x-1] = board[new_pos_y][7]; //move rook with castle
+			board[new_pos_y][7] = 0;
+		}
+	}
+	
+	if (board[new_pos_y][new_pos_x] == KING){ //see if we did a queen castle move
+		if ((new_pos_y == pos_y) && (new_pos_x == (pos_x-2))){
+			board[new_pos_y][new_pos_x+1] = board[new_pos_y][0]; //move rook with castle
+			board[new_pos_y][0] = 0;
+		}
+	}
+	
+	if ((board[new_pos_y][new_pos_x]->name == KING) || (board[new_pos_y][new_pos_x]->name == ROOK))
+		board[new_pos_y][new_pos_x]->moved = 1;
 }
 void move_piece(){
 	
