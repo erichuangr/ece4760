@@ -24,6 +24,7 @@ static char signal = 1;
 char init_x, init_y, end_x, end_y; //positions that will be selected by user via buttons
 
 char current_player = 1;
+char moved[2] = {0};
 
 typedef struct piece{
     char name;      //what piece it is
@@ -119,44 +120,37 @@ char can_king_castle(piece *king){
 	
 	char side_row;
 	if (king->side == 1) //white king
-		side_row = 7;
-	else
 		side_row = 0;
+	else
+		side_row = 7;
 	
-	if (king->moved == 0){
-		if (board[side_row][7]->moved == 0){ //if rook king side hasn't moved
+	if (!(king->moved))
+		if (board[side_row][7]->moved == 0) //if rook king side hasn't moved
 			if ((board[side_row][5] == 0) && (board[side_row][6] == 0)) //if no pieces b/w rook and king
-				return 1;
-		}
-	}
-	
+				return 1;	
 	return 0;
 }
 char can_queen_castle(piece *king){
 	
 	char side_row;
 	if (king->side == 1) //white king
-		side_row = 7;
-	else
 		side_row = 0;
+	else
+		side_row = 7;
 	
-	if (king->moved == 0){
-		if (board[side_row][0]->moved == 0){ //if rook king side hasn't moved
-			if ((board[side_row][1] == 0) && (board[side_row][2] == 0) && (board[side_row][3] == 3)) //if no pieces b/w rook and king
-				return 1;
-		}
-	}
-	
+	if (king->moved == 0)
+		if (board[side_row][0]->moved == 0)//if rook king side hasn't moved
+			if ((board[side_row][1] == NULL) && (board[side_row][2] == NULL) && (board[side_row][3] == NULL)) //if no pieces b/w rook and king
+				return 1;	
 	return 0;
 }
-
 void copy_two_boards(piece *board_src[8], piece *board_dest[8]){
 	char i, j;
 	for (j=0; j<8; j++)
 		for (i=0; i<8; i++)
 			board_dest[j][i] = board_src[j][i];
 }
-
+/*
 void copy_prev_board(){
 	
 	prev_board_counter++;
@@ -232,7 +226,7 @@ void restore_prev_board(){
 		copy_two_boards(board_src, board_dest);
 	}
 }
-
+*/
 void initialize_board(){
 		
   piece *pawn;
@@ -328,7 +322,7 @@ void initialize_board(){
 		king->moved = 0;
 	}
 	
-	white_king = board[7][4];
+	/*white_king = board[7][4];
 	black_king = board[0][4];
 	
 	white_queen = board[7][3];
@@ -342,7 +336,7 @@ void initialize_board(){
 	white_rook1 = board[7][0];
 	white_rook2 = board[7][7];
 	black_rook1 = board[0][0];
-	black_rook2 = board[0][7];
+	black_rook2 = board[0][7];*/
 }
 void calc_pawn_moves(piece *pawn){	
 	char pawn_y_sideff = pawn->ypos + (pawn->side * 2);
@@ -515,10 +509,10 @@ void calc_king_moves(piece *king){
 		avail[king_y-1][king_x-1] = 1;
 		
 	if (can_king_castle(king)) //can we castle king side
-		avail[king_y][king_x+2];
+		avail[king_y][king_x+2] = 1;
 	
 	if (can_queen_castle(king)) //can we castle queen side
-		avail[king_y][king_x-2];
+		avail[king_y][king_x-2] = 1;
 }
 void calc_knight_moves(piece *knight){
 	
@@ -567,85 +561,42 @@ void reset_array(){
 			avail[i][j] = 0;
 }
 void calc_piece_moves(){
-	if (current_player == board[init_y][init_x]->side){ //make sure piece belongs to current player's side. otherwise, do nothing.
-		char piece_name = board[init_y][init_x]->name;
-		reset_array(); //reset avail array for each piece
-		
-		tft_fillRect(0, 30, 240, 20, ILI9340_BLACK);// x,y,w,h,color
-		tft_setCursor(0, 30);
-		tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
-		
-		switch(piece_name)  {
-			case 1:
-				tft_writeString("Pawn");
-				break;
-			case 2:
-				tft_writeString("Bishop");
-				break;
-			case 3:
-				tft_writeString("Knight");
-				break;
-			case 4:
-				tft_writeString("Rook");
-				break;
-			case 5:
-				tft_writeString("Queen");
-				break;
-			case 6:
-				tft_writeString("King");
-				break;
-			default:
-				tft_writeString("Invalid Piece");          
-		}
+    
+    char piece_name = board[init_y][init_x]->name;	
+    reset_array(); //reset avail array for each piece
 
-		if (piece_name == PAWN)
-			calc_pawn_moves(board[init_y][init_x]);
-		else if (piece_name == BISHOP)
-			calc_bish_moves(board[init_y][init_x]);
-		else if (piece_name == KNIGHT)
-			calc_knight_moves(board[init_y][init_x]);
-		else if (piece_name == ROOK)
-			calc_rook_moves(board[init_y][init_x]);
-		else if (piece_name == QUEEN)
-			calc_queen_moves(board[init_y][init_x]);
-		else if (piece_name == KING)
-			calc_king_moves(board[init_y][init_x]);	
-	}
+    if (piece_name == PAWN)
+        calc_pawn_moves(board[init_y][init_x]);
+    else if (piece_name == BISHOP)
+        calc_bish_moves(board[init_y][init_x]);
+    else if (piece_name == KNIGHT)
+        calc_knight_moves(board[init_y][init_x]);
+    else if (piece_name == ROOK)
+        calc_rook_moves(board[init_y][init_x]);
+    else if (piece_name == QUEEN)
+        calc_queen_moves(board[init_y][init_x]);
+    else if (piece_name == KING)
+        calc_king_moves(board[init_y][init_x]);	
 }
 void move_piece_pawn_check(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	
 	//now move piece to new position and set prev to 0 since it's not there anymore
-	board[new_pos_y][new_pos_x] = 0;
 	board[new_pos_y][new_pos_x] = board[pos_y][pos_x];
 	board[pos_y][pos_x] = 0;
-	
+    
 	if (board[new_pos_y][new_pos_x]->name == PAWN){ //see if new move made is pawn to end
-		if ((board[new_pos_y][new_pos_x]->side == 1) && (new_pos_y == 0)){ //see if white pawn hit end
-			piece *new_queen = (piece*)malloc(sizeof(piece));
-			new_queen->name = QUEEN;
-			new_queen->side = board[new_pos_y][new_pos_x]->side;
-			new_queen->ypos = new_pos_y;
-			new_queen->xpos = new_pos_x;
-			board[new_pos_y][new_pos_x] = new_queen;
-		}
-		else if ((board[new_pos_y][new_pos_x]->side == -1) && (new_pos_y == 7)){ //see if black pawn hit end
-			piece *new_queen = (piece*)malloc(sizeof(piece));
-			new_queen->name = QUEEN;
-			new_queen->side = board[new_pos_y][new_pos_x]->side;
-			new_queen->ypos = new_pos_y;
-			new_queen->xpos = new_pos_x;
-			board[new_pos_y][new_pos_x] = new_queen;
-		}
-	}
-	
-	if (board[new_pos_y][new_pos_x] == KING){ //see if we did a king castle move
+		if ((board[new_pos_y][new_pos_x]->side == 1) && (new_pos_y == 7)) //see if white pawn hit end
+			board[new_pos_y][new_pos_x]->name = QUEEN;
+		else if ((board[new_pos_y][new_pos_x]->side == -1) && (new_pos_y == 0)) //see if black pawn hit end
+			board[new_pos_y][new_pos_x]->name = QUEEN;
+	}	
+	else if (board[new_pos_y][new_pos_x]->name == KING){ //see if we did a king castle move
 		if ((new_pos_y == pos_y) && (new_pos_x == (pos_x+2))){
 			board[new_pos_y][new_pos_x-1] = board[new_pos_y][7]; //move rook with castle
 			board[new_pos_y][7] = 0;
 		}
-	}
-	
-	if (board[new_pos_y][new_pos_x] == KING){ //see if we did a queen castle move
+	}	
+	else if (board[new_pos_y][new_pos_x]->name == KING){ //see if we did a queen castle move
 		if ((new_pos_y == pos_y) && (new_pos_x == (pos_x-2))){
 			board[new_pos_y][new_pos_x+1] = board[new_pos_y][0]; //move rook with castle
 			board[new_pos_y][0] = 0;
@@ -662,12 +613,11 @@ void move_piece(){
         piece1->xpos = end_x;
         piece1->ypos = end_y;
 		move_piece_pawn_check(init_x, init_y, piece1->xpos, piece1->ypos);
-		//move has been made. now other player's turn
-		current_player = current_player * -1;
-		copy_prev_board();
+		current_player = current_player * -1;       //move has been made. now other player's turn
+		//copy_prev_board();
 	}
 }
-// take keyboard commands. for testing purpose
+// take keyboard commands. Will change to take button commands
 static PT_THREAD (protothread_keyboard(struct pt *pt)){
     PT_BEGIN(pt);
       while(1) {         
@@ -687,6 +637,7 @@ static PT_THREAD (protothread_keyboard(struct pt *pt)){
         if(cmd[0] == 'z') 
             printf("%i%1i\t %i%1i\n\r", init_x, init_y, end_x, end_y);      
         else if(cmd[0] >= 97 && cmd[0] <= 104 && cmd[1] >= 48 && cmd[1] <= 56)   {
+            //if((board[cmd[1]-49][cmd[0]-97] == NULL || (board[cmd[1]-49][cmd[0]-97]->side != current_player)) && state == IDLE);
             if(board[cmd[1]-49][cmd[0]-97] == NULL && state == IDLE);
             else if(state == IDLE)   {
                 init_x = cmd[0] - 97;
@@ -779,6 +730,13 @@ static PT_THREAD (protothread_print(struct pt *pt)){
                 }
             }
         }
+        tft_fillRect(0, 30, 240, 20, ILI9340_BLACK);// x,y,w,h,color
+		tft_setCursor(0, 30);
+		tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(2);
+        if(current_player == 1)
+            tft_writeString("White");
+        else
+            tft_writeString("Red");
     } // END WHILE(1)
   PT_END(pt);
 } // timer thread
