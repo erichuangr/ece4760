@@ -165,22 +165,6 @@ void initialize_board(){
 		king->ypos = j;
 		king->moved = 0;
 	}
-	
-	/*white_king = board[7][4];
-	black_king = board[0][4];
-	
-	white_queen = board[7][3];
-	black_queen = board[0][3];
-	
-	white_bish1 = board[7][2];
-	white_bish2 = board[7][5];
-	black_bish1 = board[0][2];
-	black_bish2 = board[0][5];
-	
-	white_rook1 = board[7][0];
-	white_rook2 = board[7][7];
-	black_rook1 = board[0][0];
-	black_rook2 = board[0][7];*/
 }
 void calc_pawn_moves  (piece *pawn){	
 	char pawn_y_sideff = pawn->ypos + (pawn->side * 2);
@@ -507,22 +491,23 @@ static PT_THREAD (protothread_timer(struct pt *pt)){
 static PT_THREAD (protothread_keyboard(struct pt *pt)){
     PT_BEGIN(pt);
       while(1) {         
-        // send the prompt via DMA to serial
+        // send the prompt via DMA to serial by spawning a print thread
         sprintf(PT_send_buffer,"cmd>");
-        // by spawning a print thread
         PT_SPAWN(pt, &pt_DMA_output, PT_DMA_PutSerialBuffer(&pt_DMA_output) );
-        //spawn a thread to handle terminal input
-        // the input thread waits for input
-        // -- BUT does NOT block other threads
-        // string is returned in "PT_term_buffer"
+        //spawn a thread to handle terminal input, the input thread waits for input
+        // -- BUT does NOT block other threads, string is returned in "PT_term_buffer"
         PT_SPAWN(pt, &pt_input, PT_GetSerialBuffer(&pt_input) );
-        // returns when the thread dies
-        // in this case, when <enter> is pushed
-        // now parse the string
-        sscanf(PT_term_buffer, "%s", cmd);
-        if(cmd[0] == 'z') 
-            printf("%i%1i\t %i%1i\n\r", init_x, init_y, end_x, end_y);      
+        // returns when the thread dies in this case, when <enter> is pushed
+        sscanf(PT_term_buffer, "%s", cmd);  // now parse the string
+        if(cmd[0] == 'z')                   // print out initial and end coordinates
+            printf("%i%1i\t %i%1i\n\r", init_x, init_y, end_x, end_y);   
+        //check to make sure keyboard input is valid
         else if(cmd[0] >= 97 && cmd[0] <= 104 && cmd[1] >= 48 && cmd[1] <= 56)   {
+    
+    //=========================================================================================================//       
+    //==================Uncomment next line and comment out following line to turn on turn-based chess=========//
+    //=========================================================================================================//  
+            
             //if((board[cmd[1]-49][cmd[0]-97] == NULL || (board[cmd[1]-49][cmd[0]-97]->side != current_player)) && state == IDLE);
             if(board[cmd[1]-49][cmd[0]-97] == NULL && state == IDLE);
             else if(state == IDLE)   {
