@@ -590,18 +590,16 @@ void move_piece_pawn_check(char pos_x, char pos_y, char new_pos_x, char new_pos_
 		else if ((board[new_pos_y][new_pos_x]->side == -1) && (new_pos_y == 0)) //see if black pawn hit end
 			board[new_pos_y][new_pos_x]->name = QUEEN;
 	}	
-	else if (board[new_pos_y][new_pos_x]->name == KING){ //see if we did a king castle move
-		if ((new_pos_y == pos_y) && (new_pos_x == (pos_x+2))){
+	else if (board[new_pos_y][new_pos_x]->name == KING){ //check for castling
+		if ((new_pos_y == pos_y) && (new_pos_x == (pos_x+2))){ //check if king side castle
 			board[new_pos_y][new_pos_x-1] = board[new_pos_y][7]; //move rook with castle
 			board[new_pos_y][7] = 0;
 		}
-	}	
-	else if (board[new_pos_y][new_pos_x]->name == KING){ //see if we did a queen castle move
-		if ((new_pos_y == pos_y) && (new_pos_x == (pos_x-2))){
+		else if ((new_pos_y == pos_y) && (new_pos_x == (pos_x-2))){ //check if queen castle move
 			board[new_pos_y][new_pos_x+1] = board[new_pos_y][0]; //move rook with castle
 			board[new_pos_y][0] = 0;
 		}
-	}
+	}	
 	
 	if ((board[new_pos_y][new_pos_x]->name == KING) || (board[new_pos_y][new_pos_x]->name == ROOK))
 		board[new_pos_y][new_pos_x]->moved = 1;
