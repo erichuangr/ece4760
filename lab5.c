@@ -18,8 +18,11 @@
 static double value;
 static char cmd[2], signal = 1;
 static struct pt pt_end, pt_out, pt_key, pt_time, pt_move, pt_input, pt_output, pt_DMA_output ;
-int white_time_seconds = 10, black_time_seconds = 10, state = -1;
+static struct pt pt_blink;
+int white_time_seconds = 300, black_time_seconds = 300, state = -1;
 char buffer[60], init_x, init_y, end_x, end_y, current_player = 1; //positions that will be selected by user via buttons
+char white_king_taken = 0;
+char black_king_taken = 0;
 
 typedef struct piece{
     char name;      //what piece it is
@@ -35,9 +38,9 @@ char avail[8][8] = {0};
 
 //return 1 if white wins, -1 if black wins, 0 if still playing
 char game_over(){
-    if(white_time_seconds <= 0)
+    if((white_time_seconds <= 0) || white_king_taken) 
         return -1;
-    else if(black_time_seconds <= 0)
+    else if((black_time_seconds <= 0) || black_king_taken)
         return 1;
     else
         return 0;
@@ -165,6 +168,22 @@ void initialize_board(){
 		king->ypos = j;
 		king->moved = 0;
 	}
+	
+	/*white_king = board[7][4];
+	black_king = board[0][4];
+	
+	white_queen = board[7][3];
+	black_queen = board[0][3];
+	
+	white_bish1 = board[7][2];
+	white_bish2 = board[7][5];
+	black_bish1 = board[0][2];
+	black_bish2 = board[0][5];
+	
+	white_rook1 = board[7][0];
+	white_rook2 = board[7][7];
+	black_rook1 = board[0][0];
+	black_rook2 = board[0][7];*/
 }
 void calc_pawn_moves  (piece *pawn){	
 	char pawn_y_sideff = pawn->ypos + (pawn->side * 2);
@@ -408,6 +427,14 @@ void calc_piece_moves(){
 }
 void move_piece_pawn_check(char pos_x, char pos_y, char new_pos_x, char new_pos_y){
 	
+    //check if we're capturing king
+    if (board[new_pos_y][new_pos_x]!=NULL && board[new_pos_y][new_pos_x]->name == KING){ //king is going to be captured
+        if (current_player == 1) //black king is taken
+            black_king_taken = 1;
+        else
+            white_king_taken = 1;
+    }
+    
 	//now move piece to new position and set prev to 0 since it's not there anymore
 	board[new_pos_y][new_pos_x] = board[pos_y][pos_x];
 	board[pos_y][pos_x] = 0;
@@ -491,25 +518,24 @@ static PT_THREAD (protothread_timer(struct pt *pt)){
 static PT_THREAD (protothread_keyboard(struct pt *pt)){
     PT_BEGIN(pt);
       while(1) {         
-        // send the prompt via DMA to serial by spawning a print thread
+        // send the prompt via DMA to serial
         sprintf(PT_send_buffer,"cmd>");
+        // by spawning a print thread
         PT_SPAWN(pt, &pt_DMA_output, PT_DMA_PutSerialBuffer(&pt_DMA_output) );
-        //spawn a thread to handle terminal input, the input thread waits for input
-        // -- BUT does NOT block other threads, string is returned in "PT_term_buffer"
+        //spawn a thread to handle terminal input
+        // the input thread waits for input
+        // -- BUT does NOT block other threads
+        // string is returned in "PT_term_buffer"
         PT_SPAWN(pt, &pt_input, PT_GetSerialBuffer(&pt_input) );
-        // returns when the thread dies in this case, when <enter> is pushed
-        sscanf(PT_term_buffer, "%s", cmd);  // now parse the string
-        if(cmd[0] == 'z')                   // print out initial and end coordinates
-            printf("%i%1i\t %i%1i\n\r", init_x, init_y, end_x, end_y);   
-        //check to make sure keyboard input is valid
+        // returns when the thread dies
+        // in this case, when <enter> is pushed
+        // now parse the string
+        sscanf(PT_term_buffer, "%s", cmd);
+        if(cmd[0] == 'z') 
+            printf("%i%1i\t %i%1i\n\r", init_x, init_y, end_x, end_y);      
         else if(cmd[0] >= 97 && cmd[0] <= 104 && cmd[1] >= 48 && cmd[1] <= 56)   {
-    
-    //=========================================================================================================//       
-    //==================Uncomment next line and comment out following line to turn on turn-based chess=========//
-    //=========================================================================================================//  
-            
-            //if((board[cmd[1]-49][cmd[0]-97] == NULL || (board[cmd[1]-49][cmd[0]-97]->side != current_player)) && state == IDLE);
-            if(board[cmd[1]-49][cmd[0]-97] == NULL && state == IDLE);
+            if((board[cmd[1]-49][cmd[0]-97] == NULL || (board[cmd[1]-49][cmd[0]-97]->side != current_player)) && state == IDLE);
+           // if(board[cmd[1]-49][cmd[0]-97] == NULL && state == IDLE);
             else if(state == IDLE)   {
                 init_x = cmd[0] - 97;
                 init_y = cmd[1] - 49;
@@ -640,6 +666,60 @@ static PT_THREAD (protothread_move(struct pt *pt)){
         } // END WHILE(1)
 	PT_END(pt);
 }
+// === Blink LED =============================================
+/*
+static int xc = 225, yc = 15;
+static PT_THREAD (protothread_blink(struct pt *pt)){
+    char wait = 1;
+    PT_BEGIN(pt);
+        while(1) {       
+          mPORTASetBits(BIT_3);
+          mPORTBClearBits(BIT_4);
+           
+          //light 4
+          mPORTBSetBits(BIT_8);
+          mPORTBClearBits(BIT_6 | BIT_7);
+		  PT_YIELD_TIME_msec(wait);
+          
+          //light 6
+          mPORTBSetBits(BIT_8 | BIT_7);
+          mPORTBClearBits(BIT_6);
+		  PT_YIELD_TIME_msec(wait);
+         
+          //light 0
+          //PORTBSetBits(BIT_6);
+          mPORTBClearBits(BIT_6 | BIT_7 | BIT_8);
+		  PT_YIELD_TIME_msec(wait);
+          
+          //light 2
+          mPORTBSetBits(BIT_7);
+          mPORTBClearBits(BIT_6 | BIT_8);
+		  PT_YIELD_TIME_msec(wait);
+          
+          //light 1
+          mPORTBSetBits(BIT_6);
+          mPORTBClearBits(BIT_8 | BIT_7);
+		  PT_YIELD_TIME_msec(wait);
+          
+          //light 7
+          mPORTBSetBits(BIT_8 | BIT_7 | BIT_6);
+          //mPORTBClearBits(BIT_6);
+		  PT_YIELD_TIME_msec(wait);
+         
+          //light 3
+          mPORTBSetBits(BIT_7 | BIT_6);
+          mPORTBClearBits(BIT_8);
+		  PT_YIELD_TIME_msec(wait);
+          
+          //light 5
+          mPORTBSetBits(BIT_6 | BIT_8);
+          mPORTBClearBits(BIT_7);
+		  PT_YIELD_TIME_msec(wait);
+           
+        } // END WHILE(1)
+	PT_END(pt);
+}
+ * */
 // === Main  ======================================================
 void main(void) {
   // === config threads ==========
@@ -648,7 +728,13 @@ void main(void) {
 
   // === setup system wide interrupts  ========
   INTEnableSystemMultiVectoredInt();
-
+  /*
+  // set pins for lights
+  mPORTASetBits(BIT_3);
+  mPORTASetPinsDigitalOut(BIT_3);
+  mPORTBSetBits(BIT_4 | BIT_6 | BIT_7 | BIT_8);
+  mPORTBSetPinsDigitalOut(BIT_4 | BIT_6 | BIT_7 | BIT_8);
+*/
   // init the threads
   PT_INIT(&pt_time);
   PT_INIT(&pt_out);
@@ -670,6 +756,7 @@ void main(void) {
       PT_SCHEDULE(protothread_output(&pt_out));
       PT_SCHEDULE(protothread_move(&pt_move));
       PT_SCHEDULE(protothread_endgame(&pt_end));
+	//  PT_SCHEDULE(protothread_blink(&pt_blink));
   }
  } // main
 // === end  ======================================================
