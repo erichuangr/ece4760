@@ -17,12 +17,13 @@
 
 static double value;
 static char cmd[2], signal = 1;
-static struct pt pt_end, pt_out, pt_key, pt_time, pt_move, pt_input, pt_output, pt_DMA_output ;
+static struct pt pt_end, pt_out, pt_but, pt_key, pt_time, pt_move, pt_input, pt_output, pt_DMA_output ;
 static struct pt pt_blink;
 int white_time_seconds = 300, black_time_seconds = 300, state = -1;
 char buffer[60], init_x, init_y, end_x, end_y, current_player = 1; //positions that will be selected by user via buttons
 char white_king_taken = 0;
 char black_king_taken = 0;
+static char row_input, column_input;
 
 typedef struct piece{
     char name;      //what piece it is
@@ -469,7 +470,6 @@ void move_piece(){
 		current_player = current_player * -1;       //move has been made. now other player's turn
 	}
 }
-
 static PT_THREAD(protothread_endgame(struct pt *pt)){
     PT_BEGIN(pt); 
     PT_WAIT_UNTIL(pt, game_over() != 0);
@@ -497,7 +497,7 @@ static PT_THREAD (protothread_timer(struct pt *pt)){
     while(1) {         
         PT_YIELD_TIME_msec(1000);  // yield time 1 second
         if(current_player == 1 && white_time_seconds > 0)
-            white_time_seconds--;
+            ;//white_time_seconds--;
         else if(current_player == -1 && black_time_seconds > 0)
             black_time_seconds--;
         
@@ -511,10 +511,13 @@ static PT_THREAD (protothread_timer(struct pt *pt)){
         tft_setTextColor(ILI9340_RED);
         sprintf(buffer,"%d", black_time_seconds);
         tft_writeString(buffer);
+        
+        
+        
     } // END WHILE(1)
     PT_END(pt);
 }
-// === TFT Input Thread =================================================
+// === UART Input Thread =================================================
 static PT_THREAD (protothread_keyboard(struct pt *pt)){
     PT_BEGIN(pt);
       while(1) {         
@@ -564,7 +567,7 @@ static PT_THREAD (protothread_output(struct pt *pt)){
     //Print the chess board outer parameter A-H; 1-8  
     tft_setTextColor(ILI9340_GREEN);  tft_setTextSize(2);
     for(i = 0; i < 8; i++)  {
-        tft_setCursor(50+20*i, 60);
+        /*tft_setCursor(50+20*i, 60);
         sprintf(buffer, "%c", 65+i);
         tft_writeString(buffer);
         tft_setCursor(50+20*i, 240);
@@ -576,7 +579,23 @@ static PT_THREAD (protothread_output(struct pt *pt)){
         tft_writeString(buffer);
         tft_setCursor(210, 220-20*i);
         sprintf(buffer, "%i", i+1);
+        tft_writeString(buffer);*/
+         
+        tft_setCursor(50+20*i, 60);
+        sprintf(buffer, "%i", i+1);
         tft_writeString(buffer);
+        tft_setCursor(50+20*i, 240);
+        sprintf(buffer, "%i", i+1);
+        tft_writeString(buffer);
+        
+        tft_setCursor(30, 220-20*i);
+        sprintf(buffer, "%c", 65+i);
+        tft_writeString(buffer);
+        tft_setCursor(210, 220-20*i);
+        sprintf(buffer, "%c", 65+i);
+        tft_writeString(buffer);
+        
+        
     }
     //updates the chess board each iteration
     while(1) {
@@ -586,36 +605,36 @@ static PT_THREAD (protothread_output(struct pt *pt)){
             for(i = 0; i < 8; i++)  {
                 tft_setCursor(50+20*j, 220-20*i);
                 tft_setTextSize(2);                  
-                if(board[i][j] == NULL) {                       
+                if(board[j][i] == NULL) {                       
                     tft_setTextColor(ILI9340_BLUE); 
-                    tft_writeString("-");
+                    tft_writeString("|");
                 }
                 else    {
-                    if(board[i][j]->side == 1)
+                    if(board[j][i]->side == 1)
                         tft_setTextColor(ILI9340_WHITE);
                     else
                         tft_setTextColor(ILI9340_RED);
-                    if (board[i][j]->name == PAWN) 
+                    if (board[j][i]->name == PAWN) 
                         tft_writeString("P");
-                    else if (board[i][j]->name == ROOK) 
+                    else if (board[j][i]->name == ROOK) 
                         tft_writeString("R");
-                    else if (board[i][j]->name == KNIGHT) 
+                    else if (board[j][i]->name == KNIGHT) 
                         tft_writeString("H");
-                    else if (board[i][j]->name == BISHOP) 
+                    else if (board[j][i]->name == BISHOP) 
                         tft_writeString("B");
-                    else if (board[i][j]->name == QUEEN) 
+                    else if (board[j][i]->name == QUEEN) 
                         tft_writeString("Q");
-                    else if (board[i][j]->name == KING) 
+                    else if (board[j][i]->name == KING) 
                         tft_writeString("K");
                 }
                 //prints out * on the pieces able to be selected depending on the players turn
-                if(state == IDLE && board[i][j] != NULL && board[i][j]->side == current_player)    {
+                if(state == IDLE && board[j][i] != NULL && board[j][i]->side == current_player)    {
                     tft_setCursor(53+20*j, 220-20*i);                                       
                     tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(1);
                     tft_writeString("*");
                 }
                 //print out * on the places able to move with that piece
-                else if(state == CALC && avail[i][j] == 1)   {    
+                else if(state == CALC && avail[j][i] == 1)   {    
                     tft_setCursor(53+20*j, 220-20*i);                                       
                     tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(1);
                     tft_writeString("*");
@@ -667,59 +686,136 @@ static PT_THREAD (protothread_move(struct pt *pt)){
 	PT_END(pt);
 }
 // === Blink LED =============================================
-/*
-static int xc = 225, yc = 15;
-static PT_THREAD (protothread_blink(struct pt *pt)){
-    char wait = 1;
-    PT_BEGIN(pt);
+//B7-9 for row, A4 output
+//B12-14 for column, B4 output
+static PT_THREAD (protothread_button(struct pt *pt)){   
+    PT_BEGIN(pt);  
+/*===================Pin Layout=========================
+ Pin RA1, RB0-RB2 used by TFT screen
+ Column Input - RB4 
+ CA           - RB7
+ CB           - RB8
+ CC           - RB9
+  
+ Row Input    - RA4
+ RA           - RA0
+ RB           - RA2
+ RC           - RA3
+ RA0  - Row 0
+ RB3  - Row 1
+ RA2  - Row 2
+ RA3  - Row 3
+ RB4  - Row 4
+ RA4  - Row 5
+ RB5  - Row 6
+ RB14 - Row 7
+ RB13 - Column 0
+ RB12 - Column 1    //DOES NOT WORK
+ RB11 - Column 2
+ RB10 - Column 3
+ RB9  - Column 4
+ RB8  - Column 5
+ RB7  - Column 6
+ RB6  - Column 7    //DOES NOT WORK
+ =======================================================*/
+    mPORTASetPinsDigitalIn(BIT_4);          //Set port as input
+    mPORTBSetPinsDigitalIn(BIT_4);          //Set port as input
+    mPORTBSetPinsDigitalOut(BIT_7|BIT_8|BIT_9);
+    mPORTASetPinsDigitalOut(BIT_0|BIT_2|BIT_3);
+    
         while(1) {       
-          mPORTASetBits(BIT_3);
-          mPORTBClearBits(BIT_4);
-           
-          //light 4
-          mPORTBSetBits(BIT_8);
-          mPORTBClearBits(BIT_6 | BIT_7);
-		  PT_YIELD_TIME_msec(wait);
           
-          //light 6
-          mPORTBSetBits(BIT_8 | BIT_7);
-          mPORTBClearBits(BIT_6);
-		  PT_YIELD_TIME_msec(wait);
-         
-          //light 0
-          //PORTBSetBits(BIT_6);
-          mPORTBClearBits(BIT_6 | BIT_7 | BIT_8);
-		  PT_YIELD_TIME_msec(wait);
+          mPORTBClearBits(BIT_7|BIT_8|BIT_9);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTBReadBits(BIT_4) != 0)   column_input = 0;
           
-          //light 2
           mPORTBSetBits(BIT_7);
-          mPORTBClearBits(BIT_6 | BIT_8);
-		  PT_YIELD_TIME_msec(wait);
+          mPORTBClearBits(BIT_8|BIT_9);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTBReadBits(BIT_4) != 0)   column_input = 1;
           
-          //light 1
-          mPORTBSetBits(BIT_6);
-          mPORTBClearBits(BIT_8 | BIT_7);
-		  PT_YIELD_TIME_msec(wait);
+          mPORTBSetBits(BIT_8);
+          mPORTBClearBits(BIT_7|BIT_9);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTBReadBits(BIT_4) != 0)   column_input = 2;
           
-          //light 7
-          mPORTBSetBits(BIT_8 | BIT_7 | BIT_6);
-          //mPORTBClearBits(BIT_6);
-		  PT_YIELD_TIME_msec(wait);
-         
-          //light 3
-          mPORTBSetBits(BIT_7 | BIT_6);
+          mPORTBSetBits(BIT_7|BIT_8);
+          mPORTBClearBits(BIT_9);
+          PT_YIELD_TIME_msec(5);
+          if(mPORTBReadBits(BIT_4) != 0)   column_input = 3;
+          
+          mPORTBSetBits(BIT_9);
+          mPORTBClearBits(BIT_7|BIT_8);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTBReadBits(BIT_4) != 0)   column_input = 4;
+          
+          mPORTBSetBits(BIT_7|BIT_9);
           mPORTBClearBits(BIT_8);
-		  PT_YIELD_TIME_msec(wait);
-          
-          //light 5
-          mPORTBSetBits(BIT_6 | BIT_8);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTBReadBits(BIT_4) != 0)   column_input = 5;
+               
+          mPORTBSetBits(BIT_8|BIT_9);
           mPORTBClearBits(BIT_7);
-		  PT_YIELD_TIME_msec(wait);
-           
+          PT_YIELD_TIME_msec(1);
+          if(mPORTBReadBits(BIT_4) != 0)   column_input = 6;
+          
+          mPORTBSetBits(BIT_7|BIT_8|BIT_9);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTBReadBits(BIT_4) != 0)   column_input = 7;
+          
+          
+          mPORTAClearBits(BIT_0|BIT_2|BIT_3);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTAReadBits(BIT_4) != 0)   row_input = 0;
+          
+          mPORTASetBits(BIT_0);
+          mPORTAClearBits(BIT_2|BIT_3);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTAReadBits(BIT_4) != 0)   row_input = 1;
+              
+          mPORTASetBits(BIT_2);
+          mPORTAClearBits(BIT_0|BIT_3);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTAReadBits(BIT_4) != 0)   row_input = 2;
+          
+          mPORTASetBits(BIT_0|BIT_2);
+          mPORTAClearBits(BIT_3);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTAReadBits(BIT_4) != 0)   row_input = 3;
+          
+          mPORTASetBits(BIT_3);
+          mPORTAClearBits(BIT_0|BIT_2);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTAReadBits(BIT_4) != 0)   row_input = 4;
+          
+          mPORTASetBits(BIT_0|BIT_3);
+          mPORTAClearBits(BIT_2);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTAReadBits(BIT_4) != 0)   row_input = 5;
+          
+          mPORTASetBits(BIT_2|BIT_3);
+          mPORTAClearBits(BIT_0);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTAReadBits(BIT_4) != 0)   row_input = 6;
+          
+          mPORTASetBits(BIT_0|BIT_2|BIT_3);
+          PT_YIELD_TIME_msec(1);
+          if(mPORTAReadBits(BIT_4) != 0)   row_input = 7;
+
+        tft_fillRect(100, 0, 140, 10, ILI9340_BLACK);// x,y,w,h,color
+        tft_setCursor(100, 0);
+        tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(1);
+        tft_writeString("Row:");
+        sprintf(buffer, "%i", row_input);
+        tft_writeString(buffer);
+        tft_writeString("  Column:");
+        sprintf(buffer, "%i", column_input);
+        tft_writeString(buffer);
+        //PT_YIELD_TIME_msec(10);
+          
         } // END WHILE(1)
 	PT_END(pt);
 }
- * */
 // === Main  ======================================================
 void main(void) {
   // === config threads ==========
@@ -728,19 +824,14 @@ void main(void) {
 
   // === setup system wide interrupts  ========
   INTEnableSystemMultiVectoredInt();
-  /*
-  // set pins for lights
-  mPORTASetBits(BIT_3);
-  mPORTASetPinsDigitalOut(BIT_3);
-  mPORTBSetBits(BIT_4 | BIT_6 | BIT_7 | BIT_8);
-  mPORTBSetPinsDigitalOut(BIT_4 | BIT_6 | BIT_7 | BIT_8);
-*/
+ 
   // init the threads
   PT_INIT(&pt_time);
   PT_INIT(&pt_out);
   PT_INIT(&pt_key);
   PT_INIT(&pt_move);
   PT_INIT(&pt_end);
+  PT_INIT(&pt_but);
 
   // init the display
   tft_init_hw();
@@ -756,7 +847,7 @@ void main(void) {
       PT_SCHEDULE(protothread_output(&pt_out));
       PT_SCHEDULE(protothread_move(&pt_move));
       PT_SCHEDULE(protothread_endgame(&pt_end));
-	//  PT_SCHEDULE(protothread_blink(&pt_blink));
+	  PT_SCHEDULE(protothread_button(&pt_but));
   }
  } // main
 // === end  ======================================================
