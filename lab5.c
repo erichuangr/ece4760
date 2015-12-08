@@ -24,7 +24,7 @@ int white_time_seconds = 300, black_time_seconds = 300, state = -1;
 char buffer[60], init_x, init_y, end_x, end_y, current_player = 1; //positions that will be selected by user via buttons
 char white_king_taken = 0, black_king_taken = 0;
 char is_row_pressed = 0, is_column_pressed = 0;
-static char row_input, column_input;
+static char row_input = -65, column_input = -65;
 
 typedef struct piece{
     char name;      //what piece it is
@@ -506,30 +506,35 @@ static PT_THREAD (protothread_keyboard(struct pt *pt)){
             if((board[row_input][column_input] == NULL || (board[row_input][column_input]->side != current_player)) && state == IDLE){      
                 is_row_pressed = 0;
                 is_column_pressed = 0;
+                column_input = -65;
             }
             else if(state == IDLE)   {
                 init_x = column_input; 
                 init_y = row_input; 
                 is_row_pressed = 0;
                 is_column_pressed = 0;
+                column_input = -65;
                 state++;
                 signal = 1;
             }
             else if (init_x == column_input && init_y == row_input)   {
                 is_row_pressed = 0;
                 is_column_pressed = 0;
+                column_input = -65;
                 state = -1;
                 signal = 1;
             }
             else if (avail[row_input][column_input] == NULL && state == CALC){
                 is_row_pressed = 0;
                 is_column_pressed = 0;
+                column_input = -65;
             }
             else if (state == CALC) {
                 end_x = column_input; 
                 end_y = row_input;     
                 is_row_pressed = 0;
                 is_column_pressed = 0;
+                column_input = -65;
                 state = 0;
                 signal = 1;
                 if(current_player == 1) {
@@ -545,14 +550,10 @@ static PT_THREAD (protothread_keyboard(struct pt *pt)){
         PT_YIELD_TIME_msec(500);
         tft_fillRect(30, 30, 140, 10, ILI9340_BLACK);// x,y,w,h,color
         tft_setCursor(30, 30);
-        tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(1);
-        tft_writeString("Row(number):");
-        sprintf(buffer, "%i", is_row_pressed);
+        tft_setTextColor(ILI9340_YELLOW); tft_setTextSize(1);     
+        tft_writeString("Column(letter):");
+        sprintf(buffer, "%c", column_input+97);
         tft_writeString(buffer);
-        tft_writeString("  Column(letter):");
-        sprintf(buffer, "%i", is_column_pressed);
-        tft_writeString(buffer);
-        
     } // END WHILE(1)
     PT_END(pt);
 }
