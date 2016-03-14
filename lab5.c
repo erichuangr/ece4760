@@ -36,6 +36,7 @@ typedef struct piece{
 // our 8x8 board of pieces
 piece *board[8][8] = {0};
 char avail[8][8] = {0};
+piece *attacking_piece;
 //return 1 if white wins, -1 if black wins, 0 if still playing
 char game_over(){
     if((white_time_seconds <= 0) || white_king_taken) 
@@ -362,11 +363,11 @@ void calc_knight_moves(piece *knight){
     //big up left
 	if (((knight_y-2) > -1) && ((knight_x-1)>-1) && ((board[knight_y-2][knight_x-1] == 0) || (board[knight_y-2][knight_x-1]->side != knight->side))) //make sure no piece there or it's enemy piece
 		avail[knight_y-2][knight_x-1] = 1;	
-    
+	
 	//small up left
 	if (((knight_y-1) > -1) && ((knight_x-2)>-1) && ((board[knight_y-1][knight_x-2] == 0) || (board[knight_y-1][knight_x-2]->side != knight->side))) //make sure no piece there or it's enemy piece
 		avail[knight_y-1][knight_x-2] = 1;
-    
+	
     //big down right
 	if (((knight_y+2) < 8) && ((knight_x+1)<8) && ((board[knight_y+2][knight_x+1] == 0) || (board[knight_y+2][knight_x+1]->side != knight->side))) //make sure no piece there or it's enemy piece
 		avail[knight_y+2][knight_x+1] = 1;
@@ -382,7 +383,6 @@ void calc_knight_moves(piece *knight){
 	//small down left
 	if (((knight_y+1) < 8) && ((knight_x-2)>-1) && ((board[knight_y+1][knight_x-2] == 0) || (board[knight_y+1][knight_x-2]->side != knight->side))) //make sure no piece there or it's enemy piece
 		avail[knight_y+1][knight_x-2] = 1;
-			
 	
 }
 void reset_array(){
@@ -453,6 +453,292 @@ void move_piece(){
 		current_player = current_player * -1;       //move has been made. now other player's turn
 	}
 }
+
+int is_square_attacked(int x, int y, int side){
+	
+	int i = 0;
+	int j = 0;
+	
+	//go up file
+	for (j = y; j > -1; j--){
+		//see if square has a piece
+		if (board[j][x] != NULL){
+			if (board[j][x]->side == side) //one of our piece. it's blocking square. break
+				break;
+			else{ //it's enemy piece. check piece
+				if (board[j][x]->name == ROOK || board[j][x]->name == QUEEN)
+					return 1;
+			}
+		}		
+	}
+	//go up right
+	for (i = 1; x+i<8 && y-i>-1; i++){ //go diag up right
+		if (board[y-i][x+i] != NULL){
+			if (board[y-i][x+i]->side == side) //one of our piece. it's blocking square. break
+				break;
+			else{ //it's enemy piece. check piece
+				if (i == 1 && side == -1){
+					if (board[y-i][x+i]->name == PAWN)
+						return 1;
+				}
+				if (board[y-i][x+i]->name == BISHOP || board[y-i][x+i]->name == QUEEN)
+					return 1;
+			}
+		}	
+	}
+	//go right side
+	for (i = x; i < 8; i++){
+		//see if square has a piece
+		if (board[y][i] != NULL){
+			if (board[y][i]->side == side) //one of our piece. it's blocking square. break
+				break;
+			else{ //it's enemy piece. check piece
+				if (board[y][i]->name == ROOK || board[y][i]->name == QUEEN)
+					return 1;
+			}
+		}		
+	}
+	//go down right
+	for (i = 1; x+i<8 && y+i<8; i++){ //go diag down right
+		if (board[y+i][x+i] != NULL){
+			if (board[y+i][x+i]->side == side) //one of our piece. it's blocking square. break
+				break;
+			else{ //it's enemy piece. check piece
+				if (i == 1 && side == 1){
+					if (board[y+i][x+i]->name == PAWN)
+						return 1;
+				}
+				if (board[y+i][x+i]->name == BISHOP || board[y+i][x+i]->name == QUEEN)
+					return 1;
+			}
+		}	
+	}
+	//go down
+	for (j = y; j < 8; j++){
+		//see if square has a piece
+		if (board[j][x] != NULL){
+			if (board[j][x]->side == side) //one of our piece. it's blocking square. break
+				break;
+			else{ //it's enemy piece. check piece
+				if (board[j][x]->name == ROOK || board[j][x]->name == QUEEN)
+					return 1;
+			}
+		}		
+	}
+	//go down left
+	for (i = 1; x-i<8 && y+i<8; i++){ //go diag down left
+		if (board[y+i][x-i] != NULL){
+			if (board[y+i][x-i]->side == side) //one of our piece. it's blocking square. break
+				break;
+			else{ //it's enemy piece. check piece
+				if (i == 1 && side == 1){
+					if (board[y+i][x-i]->name == PAWN)
+						return 1;
+				}
+				if (board[y+i][x-i]->name == BISHOP || board[y+i][x-i]->name == QUEEN)
+					return 1;
+			}
+		}	
+	}
+	//go left
+	for (i = x; i > -1; i--){
+		//see if square has a piece
+		if (board[y][i] != NULL){
+			if (board[y][i]->side == side) //one of our piece. it's blocking square. break
+				break;
+			else{ //it's enemy piece. check piece
+				if (board[y][i]->name == ROOK || board[y][i]->name == QUEEN)
+					return 1;
+			}
+		}		
+	}
+	//go up left
+	for (i = 1; x-i<8 && y-i<8; i++){ //go diag down left
+		if (board[y-i][x-i] != NULL){
+			if (board[y-i][x-i]->side == side) //one of our piece. it's blocking square. break
+				break;
+			else{ //it's enemy piece. check piece
+				if (i == 1 && side == -1){
+					if (board[y-i][x-i]->name == PAWN)
+						return 1;
+				}
+				if (board[y-i][x-i]->name == BISHOP || board[y+i][x-i]->name == QUEEN)
+					return 1;
+			}
+		}	
+	}
+	//knight moves
+	//big up right
+	if ((((y-2) > -1) && ((x+1)<8)) && (board[y-2][x+1]->side != side) && board[y-2][x+1]->name == KNIGHT) //make sure no piece there or it's enemy piece
+		return 1;
+		
+	//small up right
+	if ((((y-1) > -1) && ((x+2)<8)) && (board[y-1][x+2]->side != side) && board[y-1][x+2]->name == KNIGHT) //make sure no piece there or it's enemy piece
+		return 1;
+	
+    //big up left
+	if ((((y-2) > -1) && ((x-1)>-1)) && (board[y-2][x-1]->side != side) && board[y-2][x-1]->name == KNIGHT) //make sure no piece there or it's enemy piece
+		return 1;
+	
+	//small up left
+	if ((((y-1) > -1) && ((x-2)>-1)) && (board[y-1][x-2]->side != side) && board[y-1][x-2]->name == KNIGHT) //make sure no piece there or it's enemy piece
+		return 1;
+	
+    //big down right
+	if ((((y+2) < 8) && ((x+1)<8)) && (board[y+2][x+1]->side != side) && board[y+2][x+1]->name == KNIGHT) //make sure no piece there or it's enemy piece
+		return 1;
+    
+	//small down right
+	if ((((y+1) < 8) && ((x+2)<8)) && (board[y+1][x+2]->side != side) && board[y+1][x+2]->name == KNIGHT) //make sure no piece there or it's enemy piece
+		return 1;
+	
+	//big down left
+	if ((((y+2) < 8) && ((x-1)>-1)) && (board[y+2][x-1]->side != side) && board[y+2][x-1]->name == KNIGHT) //make sure no piece there or it's enemy piece
+		return 1;
+		
+	//small down left
+	if ((((y+1) < 8) && ((x-2)>-1)) && (board[y+1][x-2]->side != side) && board[y+1][x-2]->name == KNIGHT) //make sure no piece there or it's enemy piece
+		return 1;
+	
+	
+	return 0;
+	
+}
+
+int find_blocker(int x, int y, int side){
+	
+	int i = 0;
+	int j = 0;
+	
+	//go up file
+	for (j = y; j > -1; j--){
+		//see if square has a piece
+		if (board[j][x] != NULL){
+			if (board[j][x]->side == side){ //one of our piece. it can save the day
+				if (board[j][x]->name == ROOK || board[j][x]->name == QUEEN) {
+					avail[j][x] = 1;
+				}
+			}
+			break;
+		}		
+	}
+	//go up right
+	for (i = 1; x+i<8 && y-i>-1; i++){ //go diag up right
+		if (board[y-i][x+i] != NULL){
+			if (board[y-i][x+i]->side == side){ //one of our piece. it can save the day
+					if (board[y-i][x+i]->name == BISHOP || board[y-i][x+i]->name == QUEEN){
+						avail[y-i][x+i] = 1;
+					}
+			}
+			break;
+		}	
+	}
+	//go right side
+	for (i = x; i < 8; i++){
+		//see if square has a piece
+		if (board[y][i] != NULL){
+			if (board[y][i]->side == side){ //one of our piece. it can save the day
+				if (board[y][i]->name == ROOK || board[y][i]->name == QUEEN){
+					avail[y-i][x+i] = 1;
+				}
+			}
+			break;
+		}		
+	}
+	//go down right
+	for (i = 1; x+i<8 && y+i<8; i++){ //go diag down right
+		if (board[y+i][x+i] != NULL){
+			if (board[y+i][x+i]->side == side){ //one of our piece. it can save the day
+				if (board[y+i][x+i]->name == BISHOP || board[y+i][x+i]->name == QUEEN){
+					avail[y+i][x+i] = 1;
+				}
+			}
+			break;
+		}	
+	}
+	//go down
+	for (j = y; j < 8; j++){
+		//see if square has a piece
+		if (board[j][x] != NULL){
+			if (board[j][x]->side == side){ //one of our piece. it can save the day
+				if (board[j][x]->name == ROOK || board[j][x]->name == QUEEN){
+					avail[j][x] = 1;
+				}
+			}
+			break;
+		}		
+	}
+	//go down left
+	for (i = 1; x-i<8 && y+i<8; i++){ //go diag down left
+		if (board[y+i][x-i] != NULL){
+			if (board[y+i][x-i]->side == side){ //one of our piece. it can save the day
+				if (board[y+i][x-i]->name == BISHOP || board[y+i][x-i]->name == QUEEN){
+					avail[y+i][x-i] = 1;
+				}
+			}
+			break;
+		}	
+	}
+	//go left
+	for (i = x; i > -1; i--){
+		//see if square has a piece
+		if (board[y][i] != NULL){
+			if (board[y][i]->side == side){ //one of our piece. it can save the day
+				if (board[y][i]->name == ROOK || board[y][i]->name == QUEEN){
+					avail[y][i] = 1;
+				}
+			}
+			break;
+		}		
+	}
+	//go up left
+	for (i = 1; x-i<8 && y-i<8; i++){ //go diag down left
+		if (board[y-i][x-i] != NULL){
+			if (board[y-i][x-i]->side == side){ //one of our piece. it can save the day
+				if (board[y-i][x-i]->name == BISHOP || board[y+i][x-i]->name == QUEEN){
+					avail[y-i][x-i] = 1;
+				}
+			}
+			break;
+		}	
+	}
+	//knight moves
+	//big up right
+	if ((((y-2) > -1) && ((x+1)<8)) && (board[y-2][x+1]->side == side) && board[y-2][x+1]->name == KNIGHT) //knight can block
+		avail[y-2][x+1] = 1;
+		
+	//small up right
+	if ((((y-1) > -1) && ((x+2)<8)) && (board[y-1][x+2]->side != side) && board[y-1][x+2]->name == KNIGHT) //knight can block
+		avail[y-1][x+2] = 1;
+	
+    //big up left
+	if ((((y-2) > -1) && ((x-1)>-1)) && (board[y-2][x-1]->side != side) && board[y-2][x-1]->name == KNIGHT) //knight can block
+		avail[y-2][x-1] = 1;
+	
+	//small up left
+	if ((((y-1) > -1) && ((x-2)>-1)) && (board[y-1][x-2]->side != side) && board[y-1][x-2]->name == KNIGHT) //knight can block
+		avail[y-1][x-2] = 1;
+	
+    //big down right
+	if ((((y+2) < 8) && ((x+1)<8)) && (board[y+2][x+1]->side != side) && board[y+2][x+1]->name == KNIGHT) //knight can block
+		avail[y+2][x+1] = 1;
+    
+	//small down right
+	if ((((y+1) < 8) && ((x+2)<8)) && (board[y+1][x+2]->side != side) && board[y+1][x+2]->name == KNIGHT) //knight can block
+		avail[y+1][x+2] = 1;
+	
+	//big down left
+	if ((((y+2) < 8) && ((x-1)>-1)) && (board[y+2][x-1]->side != side) && board[y+2][x-1]->name == KNIGHT) //knight can block
+		avail[y+2][x-1] = 1;
+		
+	//small down left
+	if ((((y+1) < 8) && ((x-2)>-1)) && (board[y+1][x-2]->side != side) && board[y+1][x-2]->name == KNIGHT) //knight can block
+		avail[y+1][x-2] = 1;
+
+	
+	return 0;
+}
+
 static PT_THREAD(protothread_endgame(struct pt *pt)){
     PT_BEGIN(pt); 
     PT_WAIT_UNTIL(pt, game_over() != 0);
